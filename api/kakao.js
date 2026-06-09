@@ -2,7 +2,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import admin from 'firebase-admin';
 
 // 파이어베이스 관리자(Admin) 권한 초기화
-// Vercel 환경변수에서 FIREBASE_SERVICE_ACCOUNT 문자열을 가져와 JSON으로 변환합니다.
 if (!admin.apps.length) {
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -25,14 +24,13 @@ export default async function handler(req, res) {
   try {
     const utterance = req.body?.userRequest?.utterance || '';
 
-    // 시스템 프롬프트: 제미나이가 무조건 JSON 형식으로만 답하도록 강제합니다.
     const systemPrompt = `
       너는 KBO 프로야구 결과를 정리해서 데이터베이스에 입력해주는 똑똑한 AI 어시스턴트야.
-      사용자의 말을 분석해서 아래 JSON 형식으로만 정확하게 리턴해. 마크다운(\`\`\`json)이나 다른 설명은 절대 추가하지 마.
+      사용자의 말을 분석해서 아래 JSON 형식으로만 정확하게 리턴해.
       {
-        "team": "분석된 메인 팀 이름 (예: 기아, LG, 삼성 등)",
+        "team": "분석된 메인 팀 이름",
         "opponent": "상대 팀 이름",
-        "score": "점수 (예: 3:2)",
+        "score": "점수",
         "result": "승리, 패배, 무승부 중 하나",
         "summary": "사용자에게 카카오톡으로 보낼 친절한 2~3줄 요약 코멘트"
       }
@@ -41,17 +39,12 @@ export default async function handler(req, res) {
         "error": "true",
         "summary": "야구 경기 결과에 대한 문장이 아닙니다. '오늘 기아 3:2로 이겼어' 처럼 말씀해 주세요!"
       }
-      형식으로 리턴해.
     `;
 
+    // 응답 속도를 위해 2개의 모델만 우선 시도 (카카오톡 5초 타임아웃 방지)
     const modelNamesToTry = [
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-latest",
       "gemini-1.5-flash-8b",
-      "gemini-1.5-pro-latest",
-      "gemini-pro",
-      "gemini-2.0-flash",
-      "gemini-2.5-flash"
+      "gemini-pro"
     ];
 
     let geminiReplyText = "";
@@ -64,33 +57,37 @@ export default async function handler(req, res) {
           systemInstruction: systemPrompt
         });
         const result = await model.generateContent(utterance);
-        geminiReplyText = result.response.text().trim();
-        
-        // 마크다운 백틱 제거 (가끔 제미나이가 강제로 붙일 때를 대비)
-        geminiReplyText = geminiReplyText.replace(/^```json/g, '').replace(/^```/g, '').replace(/```$/g, '').trim();
-        
-        // JSON 파싱 테스트 (성공하면 통과)
-        JSON.parse(geminiReplyText);
-        
+        geminiReplyText = result.response.text();
         lastError = null;
-        break; 
+        break; // 성공 시 루프 탈출
       } catch (err) {
-        console.log(`Model ${modelName} failed or returned invalid JSON. Trying next...`);
+        console.log(`Model ${modelName} failed. Error:`, err.message);
         lastError = err;
         continue;
       }
     }
 
-    if (lastError) {
-      throw new Error("AI가 유효한 JSON을 생성하지 못했거나 할당량이 초과되었습니다.");
+    if (lastError && !geminiReplyText) {
+      throw new Error("AI 호출 실패: " + lastError.message);
     }
 
-    // JSON 파싱
-    const parsedData = JSON.parse(geminiReplyText);
+    // JSON 강제 추출 (정규식 사용)
+    let parsedData = {};
+    try {
+      const jsonMatch = geminiReplyText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedData = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("JSON 형태를 찾을 수 없습니다.");
+      }
+    } catch (parseErr) {
+      console.error("JSON 파싱 에러:", parseErr, "원본 텍스트:", geminiReplyText);
+      parsedData = { error: "true", summary: "데이터를 분석했지만, 형식이 맞지 않습니다. 원본 답변: " + geminiReplyText };
+    }
     
-    let replyMessage = parsedData.summary;
+    let replyMessage = parsedData.summary || "결과를 처리했습니다.";
 
-    // 야구 결과 데이터라면 DB에 저장
+    // DB 저장
     if (!parsedData.error && db) {
       const docData = {
         team: parsedData.team || "알 수 없음",
@@ -101,14 +98,13 @@ export default async function handler(req, res) {
         originalText: utterance
       };
       
-      // Firestore 'kbo_results' 컬렉션에 추가
       await db.collection('kbo_results').add(docData);
-      
       replyMessage += "\n\n✅ [데이터베이스 저장 완료!]";
+    } else if (!db) {
+      replyMessage += "\n\n⚠️ 파이어베이스 키가 연결되지 않아 DB에는 저장되지 않았습니다.";
     }
 
-    // 카카오톡 응답 포맷
-    const responseBody = {
+    return res.status(200).json({
       version: "2.0",
       template: {
         outputs: [
@@ -119,22 +115,13 @@ export default async function handler(req, res) {
           }
         ]
       }
-    };
-
-    return res.status(200).json(responseBody);
+    });
   } catch (error) {
     console.error('Kakao/Gemini Webhook Error:', error);
-    
     return res.status(200).json({
       version: "2.0",
       template: {
-        outputs: [
-          {
-            simpleText: {
-              text: "⚠️ 처리 오류: " + (error.message || String(error))
-            }
-          }
-        ]
+        outputs: [{ simpleText: { text: "⚠️ 처리 오류: " + error.message } }]
       }
     });
   }
