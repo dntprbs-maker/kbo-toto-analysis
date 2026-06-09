@@ -20,14 +20,18 @@ export default async function handler(req, res) {
         "result": "승리, 패배, 무승부 중 하나",
         "summary": "사용자에게 카카오톡으로 보낼 친절한 2~3줄 요약 코멘트"
       }
-      만약 야구 결과와 무관하다면,
-      {
-        "error": "true",
-        "summary": "야구 경기 결과에 대한 문장이 아닙니다."
-      }
     `;
 
-    const modelNamesToTry = ["gemini-1.5-flash-8b", "gemini-pro"];
+    const modelNamesToTry = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-8b",
+      "gemini-1.5-pro",
+      "gemini-pro"
+    ];
+
     let geminiReplyText = "";
     let lastError = null;
 
@@ -45,7 +49,7 @@ export default async function handler(req, res) {
     }
 
     if (lastError && !geminiReplyText) {
-      throw new Error("AI 호출 실패: " + lastError.message);
+      throw lastError; // 에러를 밖으로 던져서 catch 블록으로 보냄
     }
 
     let parsedData = {};
@@ -61,7 +65,7 @@ export default async function handler(req, res) {
     }
     
     let replyMessage = parsedData.summary || "결과를 처리했습니다.";
-    replyMessage += "\n\n⚠️ 파이어베이스 통신 테스트 중입니다.";
+    replyMessage += "\n\n⚠️ 파이어베이스 통신 테스트 완료!";
 
     return res.status(200).json({
       version: "2.0",
@@ -70,9 +74,28 @@ export default async function handler(req, res) {
       }
     });
   } catch (error) {
+    // 모델 리스트 가져와서 에러 메시지에 추가하기
+    let availableModels = "";
+    try {
+      // (꼼수) getGenerativeModel 이 아니라 REST API로 모델 목록 가져오기
+      const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models?key=\${process.env.GEMINI_API_KEY}\`);
+      const data = await response.json();
+      if (data && data.models) {
+        availableModels = data.models.map(m => m.name.replace('models/', '')).join(', ');
+      }
+    } catch (e) {
+      availableModels = "목록을 가져올 수 없음";
+    }
+
     return res.status(200).json({
       version: "2.0",
-      template: { outputs: [{ simpleText: { text: "⚠️ 처리 오류: " + error.message } }] }
+      template: { 
+        outputs: [{ 
+          simpleText: { 
+            text: "⚠️ 제미나이 연결 실패: " + error.message + "\\n\\n[현재 사용 가능한 모델 목록]\\n" + availableModels
+          } 
+        }] 
+      }
     });
   }
 }
