@@ -41,12 +41,13 @@ export default async function handler(req, res) {
     let availableModels = "";
     try {
       // REST API로 진짜 목록만 1초만에 가져오기
-      const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models?key=\${process.env.GEMINI_API_KEY}\`);
+      const url = "https://generativelanguage.googleapis.com/v1beta/models?key=" + process.env.GEMINI_API_KEY;
+      const response = await fetch(url);
       const data = await response.json();
       if (data && data.models) {
         // text generation 을 지원하는 모델만 필터링
         const textModels = data.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"));
-        availableModels = textModels.map(m => m.name.replace('models/', '')).join(',\\n');
+        availableModels = textModels.map(m => m.name.replace("models/", "")).join(",\n");
       }
     } catch (e) {
       availableModels = "목록을 가져올 수 없음";
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
       template: { 
         outputs: [{ 
           simpleText: { 
-            text: "✅ [사용 가능한 제미나이 모델 목록]\\n\\n" + availableModels
+            text: "✅ [사용 가능한 제미나이 모델 목록]\n\n" + availableModels
           } 
         }] 
       }
