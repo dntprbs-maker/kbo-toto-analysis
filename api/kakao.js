@@ -9,7 +9,6 @@ export default async function handler(req, res) {
 
   const utterance = req.body?.userRequest?.utterance || '';
 
-  // 사용 가능하고 빠른 모델 순서대로 시도 (503 폭주 시 다음 모델로 교체)
   const modelNamesToTry = [
     "gemini-2.0-flash",
     "gemini-2.0-flash-lite",
@@ -30,7 +29,8 @@ export default async function handler(req, res) {
       const model = genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 100, temperature: 0.1 }
+        // 한글 생성 시 토큰이 많이 필요하므로 300으로 늘립니다. (100은 너무 짧아서 텍스트가 잘렸습니다)
+        generationConfig: { maxOutputTokens: 300, temperature: 0.1 }
       });
       geminiReplyText = result.response.text();
       lastError = null;
