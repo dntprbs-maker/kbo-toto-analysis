@@ -37,7 +37,7 @@ export default async function handler(req, res) {
         outputs: [
           {
             simpleText: {
-              text: "서버 내부 오류가 발생했습니다. (백엔드 에러)"
+              text: "서버 내부 오류: " + (error.message || String(error))
             }
           }
         ]
