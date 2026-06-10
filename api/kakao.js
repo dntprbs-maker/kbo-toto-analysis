@@ -16,8 +16,14 @@ export default async function handler(req, res) {
     "gemini-2.5-flash"
   ];
 
-  const prompt = `다음 야구 결과를 읽고 JSON으로만 답해. 다른 말은 절대 하지 마.
-{"team":"팀명","opponent":"상대팀","score":"점수","result":"승/패/무","summary":"1줄 요약"}
+  const prompt = `다음 야구 결과를 읽고 JSON 형식으로만 답해. 다른 말은 절대 하지 마.
+{
+  "team": "승리팀(메인팀)",
+  "opponent": "상대팀",
+  "score": "점수",
+  "result": "승/패/무",
+  "summary": "1줄 요약"
+}
 
 입력: ${utterance}`;
 
@@ -29,8 +35,11 @@ export default async function handler(req, res) {
       const model = genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        // 한글 생성 시 토큰이 많이 필요하므로 300으로 늘립니다. (100은 너무 짧아서 텍스트가 잘렸습니다)
-        generationConfig: { maxOutputTokens: 300, temperature: 0.1 }
+        generationConfig: { 
+          maxOutputTokens: 300, 
+          temperature: 0.1,
+          responseMimeType: "application/json" // 강제로 JSON만 뱉도록 설정 (마크다운 차단)
+        }
       });
       geminiReplyText = result.response.text();
       lastError = null;
@@ -50,13 +59,14 @@ export default async function handler(req, res) {
 
   let parsedData = {};
   try {
-    const jsonMatch = geminiReplyText.match(/\{[\s\S]*\}/);
-    parsedData = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: geminiReplyText };
+    // responseMimeType: application/json 옵션으로 인해 순수 JSON 문자열만 오게 됩니다.
+    parsedData = JSON.parse(geminiReplyText);
   } catch (e) {
+    // 만약 파싱에 실패하면 텍스트 자체를 리턴합니다.
     parsedData = { summary: geminiReplyText };
   }
 
-  const replyMessage = (parsedData.summary || "결과를 처리했습니다.");
+  const replyMessage = (parsedData.summary || "결과를 성공적으로 처리했습니다.");
 
   return res.status(200).json({
     version: "2.0",
