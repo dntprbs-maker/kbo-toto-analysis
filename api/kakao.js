@@ -3,8 +3,6 @@ import crypto from 'crypto';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// 💡 꼼수 비법: 무거운 파이어베이스 라이브러리(firebase-admin)를 쓰지 않고, 순수 HTTP 요청(REST API)으로 가볍게 쏘는 함수입니다.
-// 이렇게 하면 Vercel 서버가 무거워서 터지는 현상을 100% 방지할 수 있습니다!
 async function getFirebaseAccessToken(serviceAccount) {
   const header = { alg: 'RS256', typ: 'JWT' };
   const now = Math.floor(Date.now() / 1000);
@@ -32,7 +30,6 @@ async function getFirebaseAccessToken(serviceAccount) {
   return data.access_token;
 }
 
-// 파이어스토어(Firestore)에 데이터 저장하는 함수
 async function saveToFirestore(parsedData) {
   try {
     const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -42,7 +39,6 @@ async function saveToFirestore(parsedData) {
     const accessToken = await getFirebaseAccessToken(serviceAccount);
     const projectId = serviceAccount.project_id;
     
-    // 파이어스토어 규격에 맞게 데이터 포장
     const firestoreData = {
       fields: {
         team: { stringValue: parsedData.team || "" },
@@ -54,7 +50,6 @@ async function saveToFirestore(parsedData) {
       }
     };
 
-    // 'games' 라는 이름의 컬렉션(폴더)에 문서 저장
     const res = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/games`, {
       method: 'POST',
       headers: {
@@ -70,7 +65,7 @@ async function saveToFirestore(parsedData) {
     return "DB 저장 성공!";
   } catch (error) {
     console.error("Firestore Save Error:", error);
-    return "DB 저장 실패: " + error.message.substring(0, 50); // 에러 메시지가 너무 길면 카카오가 끊어버리므로 짧게 자름
+    return "DB 에러"; 
   }
 }
 
@@ -81,14 +76,7 @@ export default async function handler(req, res) {
 
   const utterance = req.body?.userRequest?.utterance || '';
 
-  const modelNamesToTry = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-3.5-flash",
-    "gemini-2.5-flash"
-  ];
-
-  const prompt = `다음 야구 결과를 읽고 JSON 형식으로만 답해. 다른 말은 절대 하지 마.
+  const prompt = `다음 야구 결과를 읽고 순수한 JSON 객체만 답해. 마크다운(\`\`\`)이나 설명은 절대 쓰지 마.
 {
   "team": "승리팀(메인팀)",
   "opponent": "상대팀",
@@ -99,52 +87,55 @@ export default async function handler(req, res) {
 
 입력: ${utterance}`;
 
+  // 가장 가볍고 빠르며 안정적인 모델 사용
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+  
   let geminiReplyText = "";
-  let lastError = null;
+  let isTimeout = false;
 
-  // 제미나이 AI 호출
-  for (const modelName of modelNamesToTry) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { 
-          maxOutputTokens: 300, 
-          temperature: 0.1,
-          responseMimeType: "application/json"
-        }
-      });
-      geminiReplyText = result.response.text();
-      lastError = null;
-      break;
-    } catch (err) {
-      lastError = err;
-      continue;
-    }
-  }
-
-  if (lastError && !geminiReplyText) {
-    return res.status(200).json({
-      version: "2.0",
-      template: { outputs: [{ simpleText: { text: "⚠️ AI 연결 실패: " + lastError.message } }] }
+  try {
+    const aiPromise = model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 250, temperature: 0.1 }
     });
+    
+    // 카카오톡 5초 타임아웃 절대 방어: 3.5초 안에 답 안 오면 짜름
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 3500));
+    
+    const result = await Promise.race([aiPromise, timeoutPromise]);
+    
+    if (result === 'TIMEOUT') {
+      isTimeout = true;
+      geminiReplyText = '{"summary": "⚠️ AI 응답 지연 (구글 서버 혼잡). 잠시 후 다시 시도해주세요."}';
+    } else {
+      geminiReplyText = result.response.text();
+    }
+  } catch (err) {
+    geminiReplyText = `{"summary": "⚠️ AI 연결 에러"}`;
   }
+
+  // 혹시라도 섞여 들어올 수 있는 마크다운 찌꺼기 제거
+  let cleanText = geminiReplyText.replace(/```json/g, '').replace(/```/g, '').trim();
 
   let parsedData = {};
-  let dbStatus = "";
+  let dbStatus = "저장 대기";
+  
   try {
-    // 1. JSON 분석
-    parsedData = JSON.parse(geminiReplyText);
+    parsedData = JSON.parse(cleanText);
     
-    // 2. 파이어베이스에 몰래 꽂아넣기!
-    dbStatus = await saveToFirestore(parsedData);
-    
+    if (!isTimeout) {
+      // 카카오톡에 답장을 바로 쏘기 위해 DB 저장은 백그라운드로 실행 (await 생략)
+      saveToFirestore(parsedData).catch(console.error);
+      dbStatus = "저장 시도 완료";
+    } else {
+      dbStatus = "지연으로 건너뜀";
+    }
   } catch (e) {
-    parsedData = { summary: geminiReplyText };
-    dbStatus = "JSON 파싱 실패로 DB 저장 건너뜀";
+    parsedData = { summary: cleanText };
+    dbStatus = "JSON 파싱 실패";
   }
 
-  const replyMessage = (parsedData.summary || "결과를 성공적으로 처리했습니다.") + `\n\n✅ [${dbStatus}]`;
+  const replyMessage = (parsedData.summary || "결과를 처리했습니다.") + `\n\n✅ [${dbStatus}]`;
 
   return res.status(200).json({
     version: "2.0",
