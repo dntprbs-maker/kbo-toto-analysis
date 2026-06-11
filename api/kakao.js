@@ -76,7 +76,7 @@ export default async function handler(req, res) {
 
   const utterance = req.body?.userRequest?.utterance || '';
 
-  const prompt = `다음 야구 결과를 읽고 순수한 JSON 객체만 답해. 마크다운(\`\`\`)이나 설명은 절대 쓰지 마.
+  const prompt = `다음 야구 결과를 읽고 분석해서 반드시 아래 JSON 형식으로만 응답해. 부가 설명이나 마크다운 백틱은 절대 쓰지 마.
 {
   "team": "승리팀(메인팀)",
   "opponent": "상대팀",
@@ -87,9 +87,11 @@ export default async function handler(req, res) {
 
 입력: ${utterance}`;
 
-  // 구글에서 가장 안정적이고 무료 한도가 제일 빵빵한 1.5-flash 모델로 고정합니다. (2.0이나 최신 프리뷰 모델들의 버그 회피)
+  // 사용자 계정에 확실하게 존재하는 모델들만 순서대로 사용!
   const modelNamesToTry = [
-    "gemini-1.5-flash"
+    "gemini-2.5-pro",
+    "gemini-2.0-flash-lite-001",
+    "gemini-2.5-flash"
   ];
   
   let geminiReplyText = "";
@@ -101,7 +103,6 @@ export default async function handler(req, res) {
       
       const aiPromise = model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        // 넉넉하게 토큰 한도를 800으로 줍니다. 글자가 절대 짤리지 않게!
         generationConfig: { maxOutputTokens: 800, temperature: 0.1 }
       });
       
