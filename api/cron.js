@@ -75,14 +75,11 @@ async function fetchKboSchedule(month, year) {
   return await res.json();
 }
 
-// KBO API 응답에서 경기 데이터 파싱
+// KBO API 응답에서 경기 결과 파싱
+// 실제 구조: Class='play', Text='한화3vs5두산' 형식
 function parseKboGames(apiData, targetDate) {
   const games = [];
   if (!apiData?.rows) return games;
-
-  // targetDate 예: '06.12(금)' 형식으로 비교
-  const pad = n => n < 10 ? '0' + n : String(n);
-  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
   let currentDate = '';
 
@@ -90,50 +87,41 @@ function parseKboGames(apiData, targetDate) {
     const row = rowObj.row;
     if (!row) continue;
 
-    // 날짜 셀 확인
+    // 날짜 셀 확인 (Class='day')
     const dateCell = row.find(cell => cell.Class === 'day');
     if (dateCell) currentDate = dateCell.Text.replace(/<[^>]+>/g, '').trim();
 
     // 해당 날짜 경기만 처리
     if (currentDate !== targetDate) continue;
 
-    // 경기 결과 파싱 (홈팀 vs 원정팀, 점수)
-    const cells = row.map(c => c.Text.replace(/<[^>]+>/g, '').trim());
+    // 경기 결과 파싱: Class='play', Text='한화3vs5두산' 형식
+    const playCell = row.find(c => c.Class === 'play');
+    if (!playCell) continue;
 
-    // 종료된 경기 찾기 (점수가 있는 경우)
-    const scorePattern = /(\d+)\s*:\s*(\d+)/;
-    const statusCell = row.find(c => c.Class === 'cancel' || (c.Text && scorePattern.test(c.Text)));
-
-    if (statusCell && scorePattern.test(statusCell.Text)) {
-      // 점수 추출
-      const scoreMatch = statusCell.Text.match(scorePattern);
-      if (scoreMatch) {
-        // 팀 정보 추출 (home/away 클래스)
-        const homeCell = row.find(c => c.Class === 'home');
-        const awayCell = row.find(c => c.Class === 'away');
-
-        if (homeCell && awayCell) {
-          const homeScore = parseInt(scoreMatch[1]);
-          const awayScore = parseInt(scoreMatch[2]);
-          games.push({
-            homeTeam: homeCell.Text.replace(/<[^>]+>/g, '').trim(),
-            awayTeam: awayCell.Text.replace(/<[^>]+>/g, '').trim(),
-            homeScore,
-            awayScore,
-            winner: homeScore > awayScore
-              ? homeCell.Text.replace(/<[^>]+>/g, '').trim()
-              : awayScore > homeScore
-                ? awayCell.Text.replace(/<[^>]+>/g, '').trim()
-                : '무승부'
-          });
-        }
-      }
+    const playText = playCell.Text.replace(/<[^>]+>/g, '').trim();
+    // '팀A숫자vs숫자팀B' 패턴: 예) '한화3vs5두산', 'NC7vs8삼성'
+    const playMatch = playText.match(/^(.+?)(\d+)vs(\d+)(.+)$/);
+    if (playMatch) {
+      const awayTeam = playMatch[1].trim();
+      const awayScore = parseInt(playMatch[2]);
+      const homeScore = parseInt(playMatch[3]);
+      const homeTeam = playMatch[4].trim();
+      games.push({
+        homeTeam,
+        awayTeam,
+        homeScore,
+        awayScore,
+        winner: homeScore > awayScore ? homeTeam
+          : awayScore > homeScore ? awayTeam
+          : '무승부'
+      });
     }
   }
   return games;
 }
 
 // 예정 경기(내일) 파싱
+// 예정 경기도 Class='play', Text='팀A vs 팀B' 형식 (점수 없음, 시간만 있음)
 function parseKboScheduled(apiData, targetDate) {
   const games = [];
   if (!apiData?.rows) return games;
@@ -149,19 +137,19 @@ function parseKboScheduled(apiData, targetDate) {
 
     if (currentDate !== targetDate) continue;
 
-    const homeCell = row.find(c => c.Class === 'home');
-    const awayCell = row.find(c => c.Class === 'away');
     const timeCell = row.find(c => c.Class === 'time');
+    const playCell = row.find(c => c.Class === 'play');
+    if (!timeCell || !playCell) continue;
 
-    if (homeCell && awayCell && timeCell) {
-      const homeName = homeCell.Text.replace(/<[^>]+>/g, '').trim();
-      const awayName = awayCell.Text.replace(/<[^>]+>/g, '').trim();
-      if (homeName && awayName) {
-        games.push({
-          homeTeam: homeName,
-          awayTeam: awayName,
-          gameTime: timeCell.Text.replace(/<[^>]+>/g, '').trim()
-        });
+    const timeText = timeCell.Text.replace(/<[^>]+>/g, '').trim();
+    const playText = playCell.Text.replace(/<[^>]+>/g, '').trim();
+
+    // 예정 경기는 점수 없이 '팀A vs 팀B' 형태로 표시됨
+    // 'vs'가 있고 숫자가 없으면 예정 경기
+    if (playText.includes('vs') && !/\d+vs\d+/.test(playText)) {
+      const [awayTeam, homeTeam] = playText.split('vs').map(s => s.trim());
+      if (awayTeam && homeTeam) {
+        games.push({ homeTeam, awayTeam, gameTime: timeText });
       }
     }
   }
