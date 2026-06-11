@@ -87,8 +87,9 @@ export default async function handler(req, res) {
 
 입력: ${utterance}`;
 
-  // 가장 가볍고 빠르며 안정적인 모델 사용
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+  // Use a model that definitely supports responseMimeType without schema, or fallback to reliable old model.
+  // Actually, I'll remove responseMimeType just to be perfectly safe from 400 Bad Request, and rely on regex.
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   
   let geminiReplyText = "";
   let isTimeout = false;
@@ -99,7 +100,6 @@ export default async function handler(req, res) {
       generationConfig: { maxOutputTokens: 250, temperature: 0.1 }
     });
     
-    // 카카오톡 5초 타임아웃 절대 방어: 3.5초 안에 답 안 오면 짜름
     const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 3500));
     
     const result = await Promise.race([aiPromise, timeoutPromise]);
@@ -111,10 +111,9 @@ export default async function handler(req, res) {
       geminiReplyText = result.response.text();
     }
   } catch (err) {
-    geminiReplyText = `{"summary": "⚠️ AI 연결 에러"}`;
+    geminiReplyText = `{"summary": "⚠️ AI 에러: ${err.message}"}`;
   }
 
-  // 혹시라도 섞여 들어올 수 있는 마크다운 찌꺼기 제거
   let cleanText = geminiReplyText.replace(/```json/g, '').replace(/```/g, '').trim();
 
   let parsedData = {};
@@ -123,16 +122,29 @@ export default async function handler(req, res) {
   try {
     parsedData = JSON.parse(cleanText);
     
-    if (!isTimeout) {
-      // 카카오톡에 답장을 바로 쏘기 위해 DB 저장은 백그라운드로 실행 (await 생략)
+    if (!isTimeout && !geminiReplyText.includes("⚠️ AI 에러")) {
       saveToFirestore(parsedData).catch(console.error);
       dbStatus = "저장 시도 완료";
     } else {
-      dbStatus = "지연으로 건너뜀";
+      dbStatus = "지연/에러로 건너뜀";
     }
   } catch (e) {
-    parsedData = { summary: cleanText };
-    dbStatus = "JSON 파싱 실패";
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+       try {
+         parsedData = JSON.parse(jsonMatch[0]);
+         if (!isTimeout && !geminiReplyText.includes("⚠️ AI 에러")) {
+           saveToFirestore(parsedData).catch(console.error);
+           dbStatus = "저장 시도 완료";
+         }
+       } catch (e2) {
+         parsedData = { summary: cleanText };
+         dbStatus = "JSON 재파싱 실패";
+       }
+    } else {
+      parsedData = { summary: cleanText };
+      dbStatus = "JSON 파싱 실패";
+    }
   }
 
   const replyMessage = (parsedData.summary || "결과를 처리했습니다.") + `\n\n✅ [${dbStatus}]`;
