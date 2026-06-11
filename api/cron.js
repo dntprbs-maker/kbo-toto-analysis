@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 // =====================================================
-// 🔥 파이어베이스 관련 유틸리티 함수들
+// 🔥 파이어베이스 유틸리티 함수들
 // =====================================================
 
 async function getFirebaseAccessToken(serviceAccount) {
@@ -33,57 +33,170 @@ async function getFirebaseAccessToken(serviceAccount) {
   return data.access_token;
 }
 
-// 파이어스토어에 단일 문서 저장
 async function saveDocument(accessToken, projectId, collection, docData) {
   const firestoreFields = {};
   for (const [key, value] of Object.entries(docData)) {
-    if (typeof value === 'string') {
-      firestoreFields[key] = { stringValue: value };
-    } else if (typeof value === 'number') {
-      firestoreFields[key] = { integerValue: String(value) };
-    } else if (typeof value === 'boolean') {
-      firestoreFields[key] = { booleanValue: value };
-    }
+    if (typeof value === 'string') firestoreFields[key] = { stringValue: value };
+    else if (typeof value === 'number') firestoreFields[key] = { integerValue: String(value) };
+    else if (typeof value === 'boolean') firestoreFields[key] = { booleanValue: value };
   }
   const res = await fetch(
     `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}`,
     {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields: firestoreFields })
     }
   );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Firestore 저장 실패: ${err}`);
-  }
+  if (!res.ok) throw new Error(`Firestore 저장 실패: ${await res.text()}`);
   return await res.json();
 }
 
 // =====================================================
-// 🌐 스포츠 데이터 스크래핑 함수 (스탯티즈 활용)
+// ⚾ KBO 공식 API에서 경기 일정/결과 가져오기
 // =====================================================
 
-async function fetchKboData(date) {
-  // date: 'YYYYMMDD' 형식
-  const url = `https://www.statiz.co.kr/schedule.php?opt=0&slt=&date=${date}`;
-  const res = await fetch(url, {
+async function fetchKboSchedule(month, year) {
+  const pad = n => n < 10 ? '0' + n : String(n);
+  const body = `leId=1&srIdList=0%2C9&seasonId=${year}&gameMonth=${pad(month)}&teamId=`;
+
+  const res = await fetch('https://www.koreabaseball.com/ws/Schedule.asmx/GetScheduleList', {
+    method: 'POST',
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      'X-Requested-With': 'XMLHttpRequest',
+      'Referer': 'https://www.koreabaseball.com/Schedule/Schedule.aspx',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    },
+    body
   });
-  if (!res.ok) throw new Error(`스크래핑 실패: ${res.status}`);
-  return await res.text();
+
+  if (!res.ok) throw new Error(`KBO API 실패: ${res.status}`);
+  return await res.json();
+}
+
+// KBO API 응답에서 경기 데이터 파싱
+function parseKboGames(apiData, targetDate) {
+  const games = [];
+  if (!apiData?.rows) return games;
+
+  // targetDate 예: '06.12(금)' 형식으로 비교
+  const pad = n => n < 10 ? '0' + n : String(n);
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+  let currentDate = '';
+
+  for (const rowObj of apiData.rows) {
+    const row = rowObj.row;
+    if (!row) continue;
+
+    // 날짜 셀 확인
+    const dateCell = row.find(cell => cell.Class === 'day');
+    if (dateCell) currentDate = dateCell.Text.replace(/<[^>]+>/g, '').trim();
+
+    // 해당 날짜 경기만 처리
+    if (currentDate !== targetDate) continue;
+
+    // 경기 결과 파싱 (홈팀 vs 원정팀, 점수)
+    const cells = row.map(c => c.Text.replace(/<[^>]+>/g, '').trim());
+
+    // 종료된 경기 찾기 (점수가 있는 경우)
+    const scorePattern = /(\d+)\s*:\s*(\d+)/;
+    const statusCell = row.find(c => c.Class === 'cancel' || (c.Text && scorePattern.test(c.Text)));
+
+    if (statusCell && scorePattern.test(statusCell.Text)) {
+      // 점수 추출
+      const scoreMatch = statusCell.Text.match(scorePattern);
+      if (scoreMatch) {
+        // 팀 정보 추출 (home/away 클래스)
+        const homeCell = row.find(c => c.Class === 'home');
+        const awayCell = row.find(c => c.Class === 'away');
+
+        if (homeCell && awayCell) {
+          const homeScore = parseInt(scoreMatch[1]);
+          const awayScore = parseInt(scoreMatch[2]);
+          games.push({
+            homeTeam: homeCell.Text.replace(/<[^>]+>/g, '').trim(),
+            awayTeam: awayCell.Text.replace(/<[^>]+>/g, '').trim(),
+            homeScore,
+            awayScore,
+            winner: homeScore > awayScore
+              ? homeCell.Text.replace(/<[^>]+>/g, '').trim()
+              : awayScore > homeScore
+                ? awayCell.Text.replace(/<[^>]+>/g, '').trim()
+                : '무승부'
+          });
+        }
+      }
+    }
+  }
+  return games;
+}
+
+// 예정 경기(내일) 파싱
+function parseKboScheduled(apiData, targetDate) {
+  const games = [];
+  if (!apiData?.rows) return games;
+
+  let currentDate = '';
+
+  for (const rowObj of apiData.rows) {
+    const row = rowObj.row;
+    if (!row) continue;
+
+    const dateCell = row.find(cell => cell.Class === 'day');
+    if (dateCell) currentDate = dateCell.Text.replace(/<[^>]+>/g, '').trim();
+
+    if (currentDate !== targetDate) continue;
+
+    const homeCell = row.find(c => c.Class === 'home');
+    const awayCell = row.find(c => c.Class === 'away');
+    const timeCell = row.find(c => c.Class === 'time');
+
+    if (homeCell && awayCell && timeCell) {
+      const homeName = homeCell.Text.replace(/<[^>]+>/g, '').trim();
+      const awayName = awayCell.Text.replace(/<[^>]+>/g, '').trim();
+      if (homeName && awayName) {
+        games.push({
+          homeTeam: homeName,
+          awayTeam: awayName,
+          gameTime: timeCell.Text.replace(/<[^>]+>/g, '').trim()
+        });
+      }
+    }
+  }
+  return games;
 }
 
 // =====================================================
-// 🤖 제미나이 AI 분석 함수
+// 🤖 제미나이 AI 예측 함수
 // =====================================================
 
-async function analyzeWithGemini(apiKey, prompt) {
+async function predictWithGemini(apiKey, scheduledGames, todayResults, tomorrowLabel) {
+  if (scheduledGames.length === 0) return [];
+
+  const gamesText = scheduledGames
+    .map(g => `${g.awayTeam}(원정) vs ${g.homeTeam}(홈) - ${g.gameTime}`)
+    .join('\n');
+
+  const prompt = `당신은 KBO 야구 전문 분석가입니다.
+내일(${tomorrowLabel}) 예정된 KBO 경기 일정입니다:
+${gamesText}
+
+오늘 경기 결과 참고:
+${todayResults.map(g => `${g.awayTeam} vs ${g.homeTeam}: ${g.awayScore}:${g.homeScore}`).join('\n')}
+
+각 경기의 승패를 예측해서 아래 JSON 배열 형식으로만 응답해줘. 마크다운이나 설명은 절대 쓰지 마.
+[
+  {
+    "homeTeam": "홈팀명",
+    "awayTeam": "원정팀명",
+    "predictedWinner": "예측 승리팀명",
+    "confidence": "높음/중간/낮음",
+    "reason": "예측 근거 한 줄 (홈 이점, 최근 폼 등)"
+  }
+]`;
+
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
     {
@@ -91,16 +204,21 @@ async function analyzeWithGemini(apiKey, prompt) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 4096
-        }
+        generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
       })
     }
   );
-  if (!res.ok) throw new Error(`Gemini API 실패: ${await res.text()}`);
+
+  if (!res.ok) throw new Error(`Gemini API 실패: ${res.status}`);
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+  const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+  try {
+    return JSON.parse(clean);
+  } catch {
+    return [];
+  }
 }
 
 // =====================================================
@@ -108,7 +226,7 @@ async function analyzeWithGemini(apiKey, prompt) {
 // =====================================================
 
 export default async function handler(req, res) {
-  // Vercel Cron Job 보안: 인증 헤더 확인
+  // Vercel Cron 보안 인증
   const authHeader = req.headers['authorization'];
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -124,138 +242,103 @@ export default async function handler(req, res) {
   const serviceAccount = JSON.parse(serviceAccountRaw);
 
   try {
-    // 📅 날짜 계산 (한국 시간 기준)
+    // 📅 한국 시간 기준 날짜 계산
     const now = new Date();
     const koNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-
-    const pad = (n) => n < 10 ? '0' + n : String(n);
-    const todayStr = `${koNow.getUTCFullYear()}${pad(koNow.getUTCMonth() + 1)}${pad(koNow.getUTCDate())}`;
-    const todayLabel = `${koNow.getUTCFullYear()}-${pad(koNow.getUTCMonth() + 1)}-${pad(koNow.getUTCDate())}`;
-
     const tomorrowKo = new Date(koNow.getTime() + 24 * 60 * 60 * 1000);
-    const tomorrowStr = `${tomorrowKo.getUTCFullYear()}${pad(tomorrowKo.getUTCMonth() + 1)}${pad(tomorrowKo.getUTCDate())}`;
-    const tomorrowLabel = `${tomorrowKo.getUTCFullYear()}-${pad(tomorrowKo.getUTCMonth() + 1)}-${pad(tomorrowKo.getUTCDate())}`;
+    const pad = n => n < 10 ? '0' + n : String(n);
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-    // 내일이 월요일인지 확인 (한국 시간 기준)
-    // getUTCDay(): 0=일, 1=월, 2=화...
-    const tomorrowDay = tomorrowKo.getUTCDay();
-    const isTomorrowMonday = tomorrowDay === 1; // 월요일 = 1
+    const todayMonth = koNow.getUTCMonth() + 1;
+    const todayDay = koNow.getUTCDate();
+    const todayYear = koNow.getUTCFullYear();
 
-    console.log(`🗓️ 오늘: ${todayLabel}, 내일: ${tomorrowLabel} (${isTomorrowMonday ? '월요일-경기없음' : '경기있음'})`);
+    const tomorrowMonth = tomorrowKo.getUTCMonth() + 1;
+    const tomorrowDay = tomorrowKo.getUTCDate();
+    const tomorrowYear = tomorrowKo.getUTCFullYear();
+    const tomorrowDayOfWeek = tomorrowKo.getUTCDay(); // 0=일, 1=월
 
-    // 🌐 오늘 경기 데이터 스크래핑
-    const todayHtml = await fetchKboData(todayStr);
+    // KBO 날짜 형식: '06.12(금)'
+    const todayLabel = `${pad(todayMonth)}.${pad(todayDay)}(${dayNames[koNow.getUTCDay()]})`;
+    const tomorrowLabel = `${pad(tomorrowMonth)}.${pad(tomorrowDay)}(${dayNames[tomorrowDayOfWeek]})`;
+    const tomorrowISO = `${tomorrowYear}-${pad(tomorrowMonth)}-${pad(tomorrowDay)}`;
 
-    // 🤖 오늘 경기 결과 추출 (Gemini AI)
-    const todayPrompt = `다음은 KBO 야구 경기 일정/결과 웹페이지의 HTML입니다.
-오늘 날짜(${todayLabel})에 종료된 경기 결과들만 찾아서 아래 JSON 배열 형식으로만 응답해줘.
-마크다운이나 부가 설명은 절대 쓰지 마. 오직 JSON 배열만.
+    // 월요일 여부 확인 (KBO 공식 휴무일)
+    const isTomorrowMonday = tomorrowDayOfWeek === 1;
 
-[
-  {
-    "date": "${todayLabel}",
-    "homeTeam": "홈팀명",
-    "awayTeam": "어웨이팀명",
-    "homeScore": 숫자,
-    "awayScore": 숫자,
-    "winner": "승리팀명",
-    "type": "result"
-  }
-]
+    console.log(`🗓️ 오늘: ${todayLabel} | 내일: ${tomorrowLabel} | 월요일: ${isTomorrowMonday}`);
 
-경기가 없거나 찾을 수 없으면 빈 배열 [] 만 반환해.
+    // ⚾ KBO API 호출
+    const kboData = await fetchKboSchedule(todayMonth, todayYear);
 
-HTML:
-${todayHtml.substring(0, 8000)}`;
+    // 오늘 종료된 경기 결과 파싱
+    const todayResults = parseKboGames(kboData, todayLabel);
+    console.log(`✅ 오늘 종료 경기: ${todayResults.length}개`);
 
-    const todayResultText = await analyzeWithGemini(geminiApiKey, todayPrompt);
-    const cleanToday = todayResultText.replace(/```json/g, '').replace(/```/g, '').trim();
-    let todayGames = [];
-    try {
-      todayGames = JSON.parse(cleanToday);
-    } catch (e) {
-      // JSON 파싱 실패시 빈 배열
-      console.error('오늘 결과 파싱 실패:', e.message, cleanToday.substring(0, 200));
+    // 내일 예정 경기 파싱
+    let scheduledGames = [];
+    if (!isTomorrowMonday) {
+      // 달이 바뀌는 경우 처리
+      const tomorrowData = tomorrowMonth !== todayMonth
+        ? await fetchKboSchedule(tomorrowMonth, tomorrowYear)
+        : kboData;
+      scheduledGames = parseKboScheduled(tomorrowData, tomorrowLabel);
+      console.log(`📅 내일 예정 경기: ${scheduledGames.length}개`);
     }
 
-    // 🌐 내일 경기 일정 스크래핑 (월요일이 아닌 경우에만)
-    let tomorrowPredictions = [];
-    if (!isTomorrowMonday) {
-      const tomorrowHtml = await fetchKboData(tomorrowStr);
-
-      // 🤖 내일 경기 일정 파악 + 승패 예측 (Gemini AI)
-      const tomorrowPrompt = `다음은 KBO 야구 경기 일정 웹페이지의 HTML입니다.
-내일 날짜(${tomorrowLabel})에 예정된 경기들의 일정을 찾아서, 각 경기의 승패를 분석하고 예측해줘.
-아래 JSON 배열 형식으로만 응답해줘. 마크다운이나 부가 설명은 절대 쓰지 마. 오직 JSON 배열만.
-
-[
-  {
-    "date": "${tomorrowLabel}",
-    "homeTeam": "홈팀명",
-    "awayTeam": "어웨이팀명",
-    "predictedWinner": "예측 승리팀명",
-    "confidence": "높음/중간/낮음",
-    "reason": "예측 근거 한 줄",
-    "type": "prediction"
-  }
-]
-
-예측 근거는 최근 팀 성적, 홈/원정 이점, 최근 맞대결 상성 등을 고려해서 판단해.
-경기가 없거나 찾을 수 없으면 빈 배열 [] 만 반환해.
-
-HTML:
-${tomorrowHtml.substring(0, 8000)}`;
-
-      const tomorrowResultText = await analyzeWithGemini(geminiApiKey, tomorrowPrompt);
-      const cleanTomorrow = tomorrowResultText.replace(/```json/g, '').replace(/```/g, '').trim();
-      try {
-        tomorrowPredictions = JSON.parse(cleanTomorrow);
-      } catch (e) {
-        console.error('내일 예측 파싱 실패:', e.message, cleanTomorrow.substring(0, 200));
-      }
+    // 🤖 제미나이 AI로 내일 경기 승패 예측
+    let predictions = [];
+    if (!isTomorrowMonday && scheduledGames.length > 0) {
+      predictions = await predictWithGemini(geminiApiKey, scheduledGames, todayResults, tomorrowISO);
+      console.log(`🔮 예측 완료: ${predictions.length}개`);
     }
 
     // 🔥 파이어베이스에 저장
     const accessToken = await getFirebaseAccessToken(serviceAccount);
     const projectId = serviceAccount.project_id;
-
     let savedCount = 0;
 
     // 오늘 경기 결과 저장
-    for (const game of todayGames) {
-      if (game && typeof game === 'object') {
-        await saveDocument(accessToken, projectId, 'games', {
-          ...game,
-          homeScore: String(game.homeScore ?? ''),
-          awayScore: String(game.awayScore ?? ''),
-          createdAt: new Date().toISOString()
-        });
-        savedCount++;
-      }
+    for (const game of todayResults) {
+      await saveDocument(accessToken, projectId, 'games', {
+        date: `${todayYear}-${pad(todayMonth)}-${pad(todayDay)}`,
+        homeTeam: game.homeTeam,
+        awayTeam: game.awayTeam,
+        homeScore: String(game.homeScore),
+        awayScore: String(game.awayScore),
+        winner: game.winner,
+        type: 'result',
+        createdAt: new Date().toISOString()
+      });
+      savedCount++;
     }
 
     // 내일 경기 예측 저장
-    for (const pred of tomorrowPredictions) {
-      if (pred && typeof pred === 'object') {
-        await saveDocument(accessToken, projectId, 'predictions', {
-          ...pred,
-          createdAt: new Date().toISOString()
-        });
-        savedCount++;
-      }
+    for (const pred of predictions) {
+      await saveDocument(accessToken, projectId, 'predictions', {
+        date: tomorrowISO,
+        homeTeam: pred.homeTeam || '',
+        awayTeam: pred.awayTeam || '',
+        predictedWinner: pred.predictedWinner || '',
+        confidence: pred.confidence || '중간',
+        reason: pred.reason || '',
+        type: 'prediction',
+        createdAt: new Date().toISOString()
+      });
+      savedCount++;
     }
 
     const summary = isTomorrowMonday
-      ? `✅ 오늘 경기 ${todayGames.length}개 저장 완료. 내일은 월요일(공식 휴무)이라 예측 없음.`
-      : `✅ 오늘 경기 ${todayGames.length}개 결과 + 내일 경기 ${tomorrowPredictions.length}개 예측. 총 ${savedCount}개 저장 완료.`;
+      ? `✅ 오늘 ${todayResults.length}경기 결과 저장. 내일은 월요일(KBO 휴무)로 예측 없음. 총 ${savedCount}개 저장.`
+      : `✅ 오늘 ${todayResults.length}경기 결과 + 내일 ${predictions.length}경기 예측. 총 ${savedCount}개 저장.`;
 
     console.log(summary);
 
     return res.status(200).json({
       success: true,
       message: summary,
-      todayGames: todayGames.length,
-      tomorrowPredictions: tomorrowPredictions.length,
+      todayResults: todayResults.length,
+      tomorrowPredictions: predictions.length,
       totalSaved: savedCount,
       isTomorrowMonday
     });
