@@ -185,8 +185,9 @@ ${todayResults.map(g => `${g.awayTeam} vs ${g.homeTeam}: ${g.awayScore}:${g.home
   }
 ]`;
 
+  // gemini-2.5-flash: 빠르고 가벼워서 cron 예측에 최적
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -274,11 +275,15 @@ export default async function handler(req, res) {
       console.log(`📅 내일 예정 경기: ${scheduledGames.length}개`);
     }
 
-    // 🤖 제미나이 AI로 내일 경기 승패 예측
+    // 🤖 제미나이 AI로 내일 경기 승패 예측 (실패해도 결과 저장은 계속 진행)
     let predictions = [];
     if (!isTomorrowMonday && scheduledGames.length > 0) {
-      predictions = await predictWithGemini(geminiApiKey, scheduledGames, todayResults, tomorrowISO);
-      console.log(`🔮 예측 완료: ${predictions.length}개`);
+      try {
+        predictions = await predictWithGemini(geminiApiKey, scheduledGames, todayResults, tomorrowISO);
+        console.log(`🔮 예측 완료: ${predictions.length}개`);
+      } catch (predErr) {
+        console.error('⚠️ 예측 실패 (결과 저장은 계속):', predErr.message);
+      }
     }
 
     // 🔥 파이어베이스에 저장
