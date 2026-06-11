@@ -87,12 +87,9 @@ export default async function handler(req, res) {
 
 입력: ${utterance}`;
 
-  // 무료 사용량이 남아있을 만한 모델들 순서대로 배치
+  // 구글에서 가장 안정적이고 무료 한도가 제일 빵빵한 1.5-flash 모델로 고정합니다. (2.0이나 최신 프리뷰 모델들의 버그 회피)
   const modelNamesToTry = [
-    "gemini-2.5-flash",
-    "gemini-1.5-flash",
-    "gemini-3.5-flash",
-    "gemini-flash-latest"
+    "gemini-1.5-flash"
   ];
   
   let geminiReplyText = "";
@@ -104,23 +101,23 @@ export default async function handler(req, res) {
       
       const aiPromise = model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 250, temperature: 0.1 }
+        // 넉넉하게 토큰 한도를 800으로 줍니다. 글자가 절대 짤리지 않게!
+        generationConfig: { maxOutputTokens: 800, temperature: 0.1 }
       });
       
-      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 3500));
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 3800));
       
       const result = await Promise.race([aiPromise, timeoutPromise]);
       
       if (result === 'TIMEOUT') {
         isTimeout = true;
-        geminiReplyText = '{"summary": "⚠️ AI 응답 지연 (서버 혼잡). 잠시 후 다시 시도해주세요."}';
-        break; // 타임아웃이면 즉시 중단
+        geminiReplyText = '{"summary": "⚠️ AI 응답 지연 (구글 서버 혼잡). 잠시 후 다시 시도해주세요."}';
+        break; 
       } else {
         geminiReplyText = result.response.text();
-        break; // 성공하면 즉시 중단
+        break; 
       }
     } catch (err) {
-      // 429 Quota 에러 등이 나면 다음 모델로 빠르게 넘어갑니다.
       geminiReplyText = `{"summary": "⚠️ AI 에러: ${err.message}"}`;
       continue;
     }
