@@ -134,6 +134,8 @@ const AdminDashboard = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64, mimeType: imageMime, gameDate: imageDate })
       });
+      // res.ok가 아니면 JSON이 아닌 HTML이 올 수 있으므로 먼저 체크
+      if (!res.ok) throw new Error(`서버 오류 ${res.status} - Vercel 배포 환경에서 테스트하세요.`);
       const data = await res.json();
       if (data.success) {
         setParsedGames(data.games);
@@ -144,6 +146,14 @@ const AdminDashboard = () => {
       alert('오류: ' + e.message);
     }
     setIsParsing(false);
+  };
+
+  // 경기 결과 이미지 초기화
+  const clearGameImage = () => {
+    setImagePreview(null);
+    setImageBase64(null);
+    setParsedGames([]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const saveAllParsedGames = async () => {
@@ -215,6 +225,8 @@ const AdminDashboard = () => {
           gameDate: predDate
         })
       });
+      // res.ok가 아니면 JSON이 아닌 HTML이 올 수 있으므로 먼저 체크
+      if (!res.ok) throw new Error(`서버 오류 ${res.status} - Vercel 배포 환경에서 테스트하세요.`);
       const data = await res.json();
       if (data.success) {
         setParsedPredictions(data.predictions);
@@ -225,6 +237,14 @@ const AdminDashboard = () => {
       alert('오류: ' + e.message);
     }
     setIsPredParsing(false);
+  };
+
+  // 예측 이미지 초기화
+  const clearPredImage = () => {
+    setPredImagePreview(null);
+    setPredImageBase64(null);
+    setParsedPredictions([]);
+    if (predFileInputRef.current) predFileInputRef.current.value = '';
   };
 
   const saveAllParsedPredictions = async () => {
@@ -290,20 +310,33 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 업로드 영역 */}
             <div>
-              <div
-                className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-yellow-500 transition-colors"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleImageDrop}
-                onClick={() => fileInputRef.current.click()}
-              >
-                {imagePreview ? (
-                  <img src={imagePreview} alt="업로드된 이미지" className="max-h-64 mx-auto rounded-lg object-contain" />
-                ) : (
-                  <div className="text-gray-400">
-                    <div className="text-4xl mb-2">📷</div>
-                    <p className="font-semibold">클릭하거나 이미지를 드래그하세요</p>
-                    <p className="text-xs mt-1">PNG, JPG, WebP 지원</p>
-                  </div>
+              {/* 이미지 업로드 영역 - relative로 X버튼 오버레이 */}
+              <div className="relative">
+                <div
+                  className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-yellow-500 transition-colors"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleImageDrop}
+                  onClick={() => fileInputRef.current.click()}
+                >
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="업로드된 이미지" className="max-h-64 mx-auto rounded-lg object-contain" />
+                  ) : (
+                    <div className="text-gray-400">
+                      <div className="text-4xl mb-2">📷</div>
+                      <p className="font-semibold">클릭하거나 이미지를 드래그하세요</p>
+                      <p className="text-xs mt-1">PNG, JPG, WebP 지원</p>
+                    </div>
+                  )}
+                </div>
+                {/* 이미지 올렸을 때만 X 취소 버튼 표시 */}
+                {imagePreview && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); clearGameImage(); }}
+                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold text-sm shadow-lg z-10"
+                    title="이미지 취소"
+                  >
+                    ✕
+                  </button>
                 )}
               </div>
               <input
@@ -403,20 +436,32 @@ const AdminDashboard = () => {
             {/* 왼쪽: 이미지 업로드 OR 텍스트 입력 */}
             <div>
               {predInputTab === 'image' ? (
-                <div
-                  className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-purple-500 transition-colors"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handlePredImageDrop}
-                  onClick={() => predFileInputRef.current.click()}
-                >
-                  {predImagePreview ? (
-                    <img src={predImagePreview} alt="예측 이미지" className="max-h-64 mx-auto rounded-lg object-contain" />
-                  ) : (
-                    <div className="text-gray-400">
-                      <div className="text-4xl mb-2">📊</div>
-                      <p className="font-semibold">예측 비교표 이미지를 올려주세요</p>
-                      <p className="text-xs mt-1">PNG, JPG, WebP 지원 • 드래그&드롭 가능</p>
-                    </div>
+                <div className="relative">
+                  <div
+                    className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-purple-500 transition-colors"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={handlePredImageDrop}
+                    onClick={() => predFileInputRef.current.click()}
+                  >
+                    {predImagePreview ? (
+                      <img src={predImagePreview} alt="예측 이미지" className="max-h-64 mx-auto rounded-lg object-contain" />
+                    ) : (
+                      <div className="text-gray-400">
+                        <div className="text-4xl mb-2">📊</div>
+                        <p className="font-semibold">예측 비교표 이미지를 올려주세요</p>
+                        <p className="text-xs mt-1">PNG, JPG, WebP 지원 • 드래그&드롭 가능</p>
+                      </div>
+                    )}
+                  </div>
+                  {/* 이미지 올렸을 때만 X 취소 버튼 표시 */}
+                  {predImagePreview && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); clearPredImage(); }}
+                      className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold text-sm shadow-lg z-10"
+                      title="이미지 취소"
+                    >
+                      ✕
+                    </button>
                   )}
                 </div>
               ) : (
