@@ -342,21 +342,30 @@ const MainDashboard = () => {
         </div>
       </header>
 
-      <div className="tabs">
-        <div className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>📊 대시보드</div>
-        <div className={`tab ${activeTab === 'records' ? 'active' : ''}`} onClick={() => setActiveTab('records')}>📋 경기기록</div>
-        <div className={`tab ${activeTab === 'betting' ? 'active' : ''}`} onClick={() => setActiveTab('betting')}>🎯 베팅내역</div>
+      <div className="sticky-ui-group">
+        <div className="tabs">
+          <div className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>📊 대시보드</div>
+          <div className={`tab ${activeTab === 'records' ? 'active' : ''}`} onClick={() => setActiveTab('records')}>📋 경기기록</div>
+          <div className={`tab ${activeTab === 'betting' ? 'active' : ''}`} onClick={() => setActiveTab('betting')}>🎯 베팅내역</div>
+        </div>
+
+        <div className="common-filter-area">
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="date-input" />
+            <span style={{color: 'var(--gray)'}}>~</span>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="date-input" />
+            <button onClick={handleResetFilters} className="btn-reset">초기화</button>
+        </div>
+
+        {activeTab === 'betting' && (
+          <div className="bet-filter-wrap sticky-bet-filter">
+            <div className={`btn-filter unanimous ${betFilterType === 'unanimous' ? 'active' : ''}`} onClick={() => setBetFilterType('unanimous')}>🎯 만장일치</div>
+            <div className={`btn-filter allfive ${betFilterType === 'allfive' ? 'active' : ''}`} onClick={() => setBetFilterType('allfive')}>⚡ 도전경기</div>
+            <div className={`btn-filter single ${betFilterType === 'single' ? 'active' : ''}`} onClick={() => setBetFilterType('single')}>1️⃣ 단독베팅</div>
+          </div>
+        )}
       </div>
 
       <main>
-        {/* 공통 필터 영역 */}
-        <div style={{display: 'flex', justifyContent: 'flex-end', gap: 6, fontSize: 11, alignItems: 'center', marginBottom: 16, color: 'var(--light)', padding: '0 12px'}}>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{cursor: 'pointer', background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--light)', borderRadius: 4, padding: '4px 6px', outline: 'none', fontFamily: 'inherit'}} />
-            <span style={{color: 'var(--gray)'}}>~</span>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{cursor: 'pointer', background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--light)', borderRadius: 4, padding: '4px 6px', outline: 'none', fontFamily: 'inherit'}} />
-            <button onClick={handleResetFilters} style={{cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--gray)', borderRadius: 4, padding: '4px 6px', fontSize: 11, marginLeft: 2}}>초기화</button>
-        </div>
-
         {/* 1. 대시보드 탭 */}
         <div className={`panel ${activeTab === 'dashboard' ? 'active' : ''}`} id="tab-dashboard">
           <div className="sec" style={{marginTop: 0}}>🎯 베팅 전략 성과</div>
@@ -421,11 +430,6 @@ const MainDashboard = () => {
 
         {/* 3. 베팅내역 탭 */}
         <div className={`panel ${activeTab === 'betting' ? 'active' : ''}`} id="tab-betting">
-          <div className="bet-filter-wrap">
-            <div className={`btn-filter unanimous ${betFilterType === 'unanimous' ? 'active' : ''}`} onClick={() => setBetFilterType('unanimous')}>🎯 만장일치</div>
-            <div className={`btn-filter allfive ${betFilterType === 'allfive' ? 'active' : ''}`} onClick={() => setBetFilterType('allfive')}>⚡ 도전경기</div>
-            <div className={`btn-filter single ${betFilterType === 'single' ? 'active' : ''}`} onClick={() => setBetFilterType('single')}>1️⃣ 단독베팅</div>
-          </div>
           <div className="bet-lists-container">
             <div className={`bet-content-panel ${betFilterType === 'unanimous' ? 'active' : ''}`} id="panel-unanimous">
               <div className="bet-pc-header">🎯 만장일치 내역</div>

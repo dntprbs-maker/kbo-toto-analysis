@@ -193,3 +193,11 @@
 .bet-type-card.single .bet-type-title {color:var(--green);}
 .btn-filter.active.single {border-color:var(--green);color:var(--green);background:rgba(6,214,160,0.05);}
 #panel-single .bet-pc-header {color:var(--green);border-bottom-color:var(--green);}
+
+.sticky-ui-group { position: sticky; top: 52px; z-index: 90; background: var(--bg); padding-bottom: 12px; }
+.main-dashboard .tabs { position: relative; top: auto; padding-bottom: 12px; z-index: auto; }
+.common-filter-area { display: flex; justify-content: flex-end; gap: 6px; font-size: 11px; align-items: center; color: var(--light); padding: 0 12px; }
+.date-input { cursor: pointer; background: var(--card); border: 1px solid var(--border); color: var(--light); border-radius: 4px; padding: 4px 6px; outline: none; font-family: inherit; }
+.btn-reset { cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--gray); border-radius: 4px; padding: 4px 6px; font-size: 11px; margin-left: 2px; }
+.sticky-bet-filter { margin: 12px 12px 0; padding: 0; background: transparent; margin-bottom: 0; }
+@media (min-width: 1024px) { .sticky-ui-group { max-width: 66vw; margin: 0 auto; } }
