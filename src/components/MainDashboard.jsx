@@ -3,18 +3,11 @@ import './MainDashboard.css';
 
 // ── DATA ────────────────────────────────────────────────────
 const INITIAL_DATA = [
-  {
-    date: "2026-06-07",
-    games: [
-      {matchup:"삼성 vs KIA",  ai1:"KIA", ai2:"KIA", ai3:"KIA", pick:"KIA", result:"KIA"},
-      {matchup:"한화 vs 롯데", ai1:"한화",ai2:"한화",ai3:"한화",pick:"한화",result:"한화"},
-      {matchup:"LG vs NC",     ai1:"NC",  ai2:"LG",  ai3:"LG",  pick:"LG",  result:"NC"},
-      {matchup:"KT vs SSG",    ai1:"SSG", ai2:"KT",  ai3:"KT",  pick:"KT",  result:"SSG"},
-      {matchup:"키움 vs 두산", ai1:"두산",ai2:"두산",ai3:"두산",pick:"두산",result:"키움"},
-    ],
-    unanimousBet: {odds:3.9,  amount:100, betResult:"miss"},
-    allFiveBet:   {odds:10.0, amount:100, betResult:"miss"},
-  },
+  {date:"2026-06-07",games:[{matchup:"삼성 vs KIA",ai1:"KIA",ai2:"KIA",ai3:"KIA",pick:"KIA",result:"KIA"},{matchup:"한화 vs 롯데",ai1:"한화",ai2:"한화",ai3:"한화",pick:"한화",result:"한화"},{matchup:"LG vs NC",ai1:"NC",ai2:"LG",ai3:"LG",pick:"LG",result:"NC"},{matchup:"KT vs SSG",ai1:"SSG",ai2:"KT",ai3:"KT",pick:"KT",result:"SSG"},{matchup:"키움 vs 두산",ai1:"두산",ai2:"두산",ai3:"두산",pick:"두산",result:"키움"}],unanimousBet:{odds:3.9,amount:100,betResult:"miss"},allFiveBets:[{label:"조합1",odds:10.0,amount:100,betResult:"miss",pickLabels:["KIA","한화","LG","KT","두산"]}]},
+  {date:"2026-06-09",games:[{matchup:"SSG vs LG",ai1:"LG",ai2:"LG",ai3:"LG",pick:"LG",result:"LG"},{matchup:"두산 vs 롯데",ai1:"두산",ai2:"두산",ai3:"두산",pick:"두산",result:"두산"},{matchup:"KIA vs 한화",ai1:"한화",ai2:"KIA",ai3:"KIA",pick:"KIA",result:"KIA"},{matchup:"NC vs 키움",ai1:"키움",ai2:"키움",ai3:"NC",pick:"키움",result:"키움"},{matchup:"삼성 vs KT",ai1:"KT",ai2:"KT",ai3:"KT",pick:"KT",result:"KT"}],unanimousBet:{odds:3.5,amount:100,betResult:"hit"},allFiveBets:[{label:"조합1",odds:11.9,amount:100,betResult:"hit",pickLabels:["LG승","롯데패","KT승","한화패","키움승"]}]},
+  {date:"2026-06-10",games:[{matchup:"SSG vs LG",ai1:"LG",ai2:"LG",ai3:"LG",pick:"LG",result:"LG"},{matchup:"두산 vs 롯데",ai1:"두산",ai2:"두산",ai3:"두산",pick:"두산",result:"롯데"},{matchup:"삼성 vs KT",ai1:"삼성",ai2:"KT",ai3:"KT",pick:"KT",result:"KT"},{matchup:"KIA vs 한화",ai1:"KIA",ai2:"KIA",ai3:"한화",pick:"KIA",result:"한화"},{matchup:"NC vs 키움",ai1:"NC",ai2:"키움",ai3:"NC",pick:"NC",result:"NC"}],unanimousBet:{odds:1.9,amount:100,betResult:"miss",customGames:[{matchup:"SSG vs LG",pick:"LG",result:"LG"},{matchup:"두산 vs 롯데",pick:"두산",result:"롯데"}]},allFiveBets:[{label:"인터넷",odds:10.3,amount:100,betResult:"miss",pickLabels:["LG승","롯데패","KT승","한화패","키움패"]},{label:"판매점A (KT패)",odds:5.6,amount:5000,betResult:"miss",pickLabels:["LG승","롯데패","KT패(삼성승)","한화패(KIA승)","키움패"]},{label:"판매점B (KT승)",odds:7.9,amount:5000,betResult:"miss",pickLabels:["LG승","롯데패","KT승","한화패(KIA승)","키움패"]}]},
+  {date:"2026-06-11",games:[{matchup:"SSG vs LG",ai1:"LG",ai2:"LG",ai3:"LG",pick:"LG",result:"LG"},{matchup:"두산 vs 롯데",ai1:"롯데",ai2:"두산",ai3:"두산",pick:"두산",result:"두산"},{matchup:"삼성 vs KT",ai1:"삼성",ai2:"KT",ai3:"KT",pick:"KT",result:"삼성"},{matchup:"KIA vs 한화",ai1:"한화",ai2:"KIA",ai3:"한화",pick:"한화",result:"한화"},{matchup:"NC vs 키움",ai1:"NC",ai2:"키움",ai3:"NC",pick:"NC",result:"NC"}],unanimousBet:{odds:1.6,amount:100,betResult:"hit",customGames:[{matchup:"SSG vs LG",pick:"LG",result:"LG"}]},allFiveBets:[{label:"5경기",odds:13.4,amount:100,betResult:"miss",pickLabels:["LG승","롯데패(두산승)","KT승","한화승","키움패(NC승)"]},{label:"3경기",odds:6.1,amount:100,betResult:"miss",customGames:[{matchup:"SSG vs LG",pick:"LG",result:"LG"},{matchup:"삼성 vs KT",pick:"KT",result:"삼성"},{matchup:"KIA vs 한화",pick:"한화",result:"한화"}]}]},
+  {date:"2026-06-12",games:[{matchup:"롯데 vs LG",ai1:"LG",ai2:"LG",ai3:"LG",pick:"LG",result:"롯데"},{matchup:"두산 vs KIA",ai1:"KIA",ai2:"KIA",ai3:"KIA",pick:"KIA",result:"두산"},{matchup:"한화 vs 키움",ai1:"키움",ai2:"키움",ai3:"한화",pick:"키움",result:"키움"},{matchup:"SSG vs 삼성",ai1:"삼성",ai2:"삼성",ai3:"SSG",pick:"삼성",result:"SSG"},{matchup:"NC vs KT",ai1:"NC",ai2:"NC",ai3:"KT",pick:"NC",result:"KT"}],unanimousBet:{odds:1.6,amount:100,betResult:"miss",customGames:[{matchup:"두산 vs KIA",pick:"KIA",result:"두산"}]},allFiveBets:[{label:"3경기",odds:3.3,amount:100,betResult:"miss",customGames:[{matchup:"롯데 vs LG",pick:"LG",result:"롯데"},{matchup:"SSG vs 삼성",pick:"삼성",result:"SSG"},{matchup:"두산 vs KIA",pick:"KIA",result:"두산"}]},{label:"5경기",odds:11.2,amount:100,betResult:"miss",pickLabels:["LG승","삼성승","KIA승","KT패(NC승)","키움승"]}],singleBets:[{matchup:"롯데 vs LG",pick:"LG",odds:1.35,amount:100,betResult:"miss",result:"롯데"},{matchup:"SSG vs 삼성",pick:"삼성",odds:1.51,amount:100,betResult:"miss",result:"SSG"},{matchup:"두산 vs KIA",pick:"KIA",odds:1.60,amount:100,betResult:"miss",result:"두산"},{matchup:"NC vs KT",pick:"NC",odds:1.72,amount:100,betResult:"miss",result:"KT"},{matchup:"한화 vs 키움",pick:"키움",odds:1.99,amount:100,betResult:"hit",result:"키움"}]},
 ];
 
 const MainDashboard = () => {
@@ -42,7 +35,7 @@ const MainDashboard = () => {
     return games.every(g => g.pick === g.result) ? 'hit' : 'miss';
   };
   const getProfit = (bet) => {
-    if (bet.betResult === 'pending') return null;
+    if (!bet || bet.betResult === 'pending') return null;
     if (bet.betResult === 'hit') return Math.round(bet.amount * bet.odds - bet.amount);
     return -bet.amount;
   };
@@ -71,7 +64,11 @@ const MainDashboard = () => {
     const maxTime = new Date(endDate || new Date().toISOString().split('T')[0]).getTime();
     const timeRange = maxTime - minTime || 86400000;
 
-    const daysWithResults = filteredData.filter(d => d.unanimousBet.betResult !== 'pending' || d.allFiveBet.betResult !== 'pending');
+    const daysWithResults = filteredData.filter(d => {
+      return (d.unanimousBet && d.unanimousBet.betResult !== 'pending') ||
+             (d.allFiveBets && d.allFiveBets.some(b => b.betResult !== 'pending')) ||
+             (d.singleBets && d.singleBets.some(b => b.betResult !== 'pending'));
+    });
 
     if (!daysWithResults.length) {
       ctx.fillStyle = '#6b7280'; ctx.font = '13px Noto Sans KR'; ctx.textAlign = 'center';
@@ -90,9 +87,13 @@ const MainDashboard = () => {
       return;
     }
     
+    let cum = 0;
     const pts = daysWithResults.map(d => { 
-      const dailyProfit = (getProfit(d.unanimousBet)||0) + (getProfit(d.allFiveBet)||0); 
-      return { time: new Date(d.date).getTime(), y: dailyProfit, dateStr: d.date }; 
+      let dailyProfit = (getProfit(d.unanimousBet)||0);
+      if (d.allFiveBets) dailyProfit += d.allFiveBets.reduce((s,b)=>s+(getProfit(b)||0), 0);
+      if (d.singleBets) dailyProfit += d.singleBets.reduce((s,b)=>s+(getProfit(b)||0), 0);
+      cum += dailyProfit;
+      return { time: new Date(d.date).getTime(), y: cum, dateStr: d.date }; 
     });
 
     const pad = {l:52, r:16, t:16, b:38};
@@ -107,31 +108,40 @@ const MainDashboard = () => {
     ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.moveTo(pad.l, toY(0)); ctx.lineTo(W - pad.r, toY(0)); ctx.stroke(); ctx.setLineDash([]);
     
-    const daysDiff = Math.max(timeRange / 86400000, 1);
-    const barW = Math.max((cW / daysDiff) * 0.4, 4);
+    const isPosLine = pts[pts.length-1].y >= 0;
+    const lineCol = isPosLine ? '#06d6a0' : '#ef476f';
+    const grad = ctx.createLinearGradient(0, pad.t, 0, H-pad.b);
+    grad.addColorStop(0, isPosLine ? 'rgba(6,214,160,.25)' : 'rgba(239,71,111,.25)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    
+    // Area
+    ctx.beginPath();
+    ctx.moveTo(toX(pts[0].time), toY(0));
+    pts.forEach(p => ctx.lineTo(toX(p.time), toY(p.y)));
+    ctx.lineTo(toX(pts[pts.length-1].time), toY(0));
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
 
+    // Line
+    ctx.beginPath();
+    ctx.strokeStyle = lineCol;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    pts.forEach((p,i) => i===0 ? ctx.moveTo(toX(p.time), toY(p.y)) : ctx.lineTo(toX(p.time), toY(p.y)));
+    ctx.stroke();
+
+    // Points and text
     ctx.textAlign = 'center'; ctx.font = '9px Noto Sans KR';
-
     pts.forEach((p) => { 
-      const isPos = p.y > 0;
-      const isZero = p.y === 0;
-      const barColor = isPos ? '#3b82f6' : (isZero ? '#6b7280' : '#ef476f');
-      
-      ctx.fillStyle = barColor;
-      const x = toX(p.time);
-      const yZero = toY(0);
-      const yVal = toY(p.y);
-      const rectY = p.y >= 0 ? yVal : yZero;
-      const rectH = Math.abs(yZero - yVal);
-      ctx.fillRect(x - barW/2, rectY, barW, Math.max(rectH, 1));
+      ctx.beginPath();
+      ctx.arc(toX(p.time), toY(p.y), 3.5, 0, Math.PI*2);
+      ctx.fillStyle = p.y >= 0 ? '#06d6a0' : '#ef476f';
+      ctx.fill();
 
       ctx.fillStyle = '#9ca3af';
       const d = new Date(p.time);
-      ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`, x, H-pad.b+14);
-
-      ctx.fillStyle = barColor;
-      const amtStr = p.y > 0 ? `+${p.y.toLocaleString()}` : p.y.toLocaleString();
-      ctx.fillText(amtStr, x, H-pad.b+26);
+      ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`, toX(p.time), H-pad.b+14);
     });
     
     ctx.fillStyle = '#6b7280'; ctx.font = '10px Noto Sans KR'; ctx.textAlign = 'right';
@@ -145,9 +155,11 @@ const MainDashboard = () => {
   };
 
   // 대시보드 요약 지표 계산
-  const uBets = filteredData.map(d=>d.unanimousBet).filter(b=>b.betResult!=='pending');
-  const a5Bets = filteredData.map(d=>d.allFiveBet).filter(b=>b.betResult!=='pending');
-  const allBets = [...uBets, ...a5Bets];
+  const uBets = filteredData.map(d=>d.unanimousBet).filter(b=>b && b.betResult!=='pending');
+  const a5Bets = filteredData.flatMap(d=>d.allFiveBets||[]).filter(b=>b.betResult!=='pending');
+  const sBets = filteredData.flatMap(d=>d.singleBets||[]).filter(b=>b.betResult!=='pending');
+  const allBets = [...uBets, ...a5Bets, ...sBets];
+  
   const totalBet = allBets.reduce((s,b)=>s+b.amount,0);
   const totalProfit = allBets.reduce((s,b)=>s+(getProfit(b)||0),0);
   const totalDays = filteredData.filter(d=>d.games.some(g=>g.result!==null)).length;
@@ -169,17 +181,16 @@ const MainDashboard = () => {
     );
   };
 
-  const renderBetList = (type) => {
-    return [...filteredData.keys()].reverse().map(i => {
-      const item = type === 'unanimous' ? filteredData[i].unanimousBet : filteredData[i].allFiveBet;
-      const d = filteredData[i];
-      const games = type === 'unanimous' ? getUnanimousGames(d) : d.games;
-      
-      if(type === 'unanimous' && games.length === 0) return null;
+  const renderUnanimousList = () => {
+    return [...filteredData].reverse().map((d, i) => {
+      const item = d.unanimousBet;
+      if (!item) return null;
+      const games = item.customGames || getUnanimousGames(d);
+      if (games.length === 0) return null;
       
       const status = calcBetStatus(games, item);
       return (
-        <div key={i} className="day-card" style={{marginBottom: 14}}>
+        <div key={`u-${i}`} className="day-card" style={{marginBottom: 14}}>
           <div className="day-header bet-day-header-pc" style={{flexDirection: 'column', alignItems: 'stretch', gap: 4}}>
             <div className="bet-card-header-row1">
               <span className="day-date">📅 {d.date}</span>
@@ -222,6 +233,106 @@ const MainDashboard = () => {
     });
   };
 
+  const renderAllFiveList = () => {
+    return [...filteredData].reverse().map((d, i) => {
+      const bets = d.allFiveBets || [];
+      if (!bets.length) return null;
+
+      return bets.map((item, bi) => {
+        const displayGames = item.customGames || d.games;
+        const status = calcBetStatus(displayGames, item);
+        const labels = item.pickLabels || displayGames.map(g=>g.pick);
+        
+        return (
+          <div key={`a5-${i}-${bi}`} className="day-card" style={{marginBottom: 14}}>
+            <div className="day-header bet-day-header-pc" style={{flexDirection: 'column', alignItems: 'stretch', gap: 4}}>
+              <div className="bet-card-header-row1">
+                <span className="day-date">📅 {d.date} <span style={{fontSize: 10, fontWeight: 700, color: '#5ba8ff', background: 'rgba(91,168,255,0.10)', borderRadius: 6, padding: '2px 8px'}}>{item.label||'조합'+(bi+1)}</span></span>
+                <span className={`day-badge ${status}`}>{status==='hit'?'✅ 적중':status==='miss'?'❌ 미적중':'⏳ 대기중'}</span>
+              </div>
+              <div className="bet-card-summary-row">
+                <span className="bet-header-summary" style={{marginLeft: 0}}>
+                  {displayGames.length}경기 / 배당 <strong>{item.odds||'-'}배</strong> / 베팅 {item.amount.toLocaleString()}원
+                  {status==='hit' ? <span> / <strong style={{color:'var(--green)'}}>📈 +{Math.round(item.amount*item.odds).toLocaleString()}원</strong></span> : 
+                   item.odds ? <span> / <span style={{color:'#6b9fce'}}>예상 {Math.round(item.amount*item.odds).toLocaleString()}원</span></span> : ''}
+                </span>
+              </div>
+            </div>
+            <div className="day-body">
+              <div className="game-list-header">
+                <span className="col-match">매치업</span>
+                <span className="col-pick">최종픽</span>
+                <span className="col-result">결과</span>
+              </div>
+              {displayGames.map((g, gi) => {
+                const rs = g.result===null ? 'pending' : g.pick===g.result ? 'hit' : 'miss';
+                return (
+                  <div key={gi} className="game-row">
+                    <span className="game-matchup">{g.matchup}</span>
+                    <span className="col-pick-cell"><span className="pick-chip">{labels[gi] || g.pick}</span></span>
+                    <span className={`col-result-cell game-result ${rs}`}>{g.result||'대기'}</span>
+                  </div>
+                );
+              })}
+              {status !== 'hit' && (
+                <div style={{display:'flex', justifyContent:'flex-end', marginTop: 8, paddingTop: 8, borderTop:'1px solid var(--border)'}}>
+                  <span className={status==='pending'?'neu':'neg'} style={{fontWeight: 900, fontSize: 13}}>
+                    {status==='pending' ? '-' : fmt(-item.amount)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      });
+    });
+  };
+
+  const renderSingleList = () => {
+    return [...filteredData].reverse().map((d, i) => {
+      const bets = d.singleBets || [];
+      if (!bets.length) return null;
+
+      return (
+        <div key={`s-${i}`} className="day-card" style={{marginBottom: 14}}>
+          <div className="day-header bet-day-header-pc" style={{flexDirection: 'column', alignItems: 'stretch', gap: 4}}>
+            <div className="bet-card-header-row1">
+              <span className="day-date">📅 {d.date}</span>
+            </div>
+          </div>
+          <div className="day-body">
+            <div className="game-list-header">
+              <span className="col-match">매치업 / 픽</span>
+              <span className="col-pick">배당</span>
+              <span className="col-result">결과</span>
+            </div>
+            {bets.map((b, bi) => {
+              const rs = b.result===null ? 'pending' : b.pick===b.result ? 'hit' : 'miss';
+              const status = b.betResult !== 'pending' ? b.betResult : rs;
+              return (
+                <React.Fragment key={bi}>
+                  <div className="game-row">
+                    <span className="game-matchup">{b.matchup} <span className="pick-chip">{b.pick}</span></span>
+                    <span className="col-pick-cell" style={{color:'var(--gold2)', fontWeight: 700}}>{b.odds}배</span>
+                    <span className={`col-result-cell game-result ${rs}`}>{b.result||'대기'}</span>
+                  </div>
+                  <div style={{display: 'flex', justifyContent: 'space-between', padding: '2px 20px 6px', fontSize: 11, borderBottom: '1px solid rgba(255,255,255,0.04)'}}>
+                    <span style={{color: 'var(--gray)'}}>베팅 {b.amount.toLocaleString()}원</span>
+                    <span className={status==='hit'?'pos':status==='pending'?'neu':'neg'} style={{fontWeight: 700}}>
+                      {status==='hit' ? `+${Math.round(b.amount*b.odds - b.amount).toLocaleString()}원` : 
+                       status==='pending' ? `예상 +${Math.round(b.amount*b.odds - b.amount).toLocaleString()}원` : 
+                       `-${b.amount.toLocaleString()}원`}
+                    </span>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      );
+    });
+  };
+
   return (
     <div className="main-dashboard">
       <header>
@@ -250,8 +361,9 @@ const MainDashboard = () => {
         <div className={`panel ${activeTab === 'dashboard' ? 'active' : ''}`} id="tab-dashboard">
           <div className="sec" style={{marginTop: 0}}>🎯 베팅 전략 성과</div>
           <div className="bet-compare">
-            {renderBetStats(filteredData.map(d=>d.unanimousBet), '🎯 만장일치', 'unanimous')}
-            {renderBetStats(filteredData.map(d=>d.allFiveBet), '⚾ 다섯경기', 'allfive')}
+            {renderBetStats(filteredData.map(d=>d.unanimousBet).filter(Boolean), '🎯 만장일치', 'unanimous')}
+            {renderBetStats(filteredData.flatMap(d=>d.allFiveBets||[]), '⚡ 도전경기', 'allfive')}
+            {renderBetStats(filteredData.flatMap(d=>d.singleBets||[]), '1️⃣ 단독베팅', 'single')}
           </div>
           
           <div className="sec">📆 종합 투자 현황</div>
@@ -311,18 +423,24 @@ const MainDashboard = () => {
         <div className={`panel ${activeTab === 'betting' ? 'active' : ''}`} id="tab-betting">
           <div className="bet-filter-wrap">
             <div className={`btn-filter unanimous ${betFilterType === 'unanimous' ? 'active' : ''}`} onClick={() => setBetFilterType('unanimous')}>🎯 만장일치</div>
-            <div className={`btn-filter allfive ${betFilterType === 'allfive' ? 'active' : ''}`} onClick={() => setBetFilterType('allfive')}>⚾ 다섯경기</div>
+            <div className={`btn-filter allfive ${betFilterType === 'allfive' ? 'active' : ''}`} onClick={() => setBetFilterType('allfive')}>⚡ 도전경기</div>
+            <div className={`btn-filter single ${betFilterType === 'single' ? 'active' : ''}`} onClick={() => setBetFilterType('single')}>1️⃣ 단독베팅</div>
           </div>
           <div className="bet-lists-container">
             <div className={`bet-content-panel ${betFilterType === 'unanimous' ? 'active' : ''}`} id="panel-unanimous">
               <div className="bet-pc-header">🎯 만장일치 내역</div>
-              {renderBetList('unanimous')}
-              {renderBetList('unanimous').every(el => el === null) && <div className="empty">📝 기간 내 만장일치 베팅 내역이 없습니다.</div>}
+              {renderUnanimousList()}
+              {renderUnanimousList().every(el => el === null) && <div className="empty">📝 기간 내 만장일치 베팅 내역이 없습니다.</div>}
             </div>
             <div className={`bet-content-panel ${betFilterType === 'allfive' ? 'active' : ''}`} id="panel-allfive">
-              <div className="bet-pc-header">⚾ 다섯경기 내역</div>
-              {renderBetList('allfive')}
-              {renderBetList('allfive').every(el => el === null) && <div className="empty">📝 기간 내 다섯경기 베팅 내역이 없습니다.</div>}
+              <div className="bet-pc-header">⚡ 도전경기 내역</div>
+              {renderAllFiveList()}
+              {renderAllFiveList().every(el => el === null) && <div className="empty">📝 기간 내 도전경기 베팅 내역이 없습니다.</div>}
+            </div>
+            <div className={`bet-content-panel ${betFilterType === 'single' ? 'active' : ''}`} id="panel-single">
+              <div className="bet-pc-header">1️⃣ 단독베팅 내역</div>
+              {renderSingleList()}
+              {renderSingleList().every(el => el === null) && <div className="empty">📝 기간 내 단독베팅 내역이 없습니다.</div>}
             </div>
           </div>
         </div>

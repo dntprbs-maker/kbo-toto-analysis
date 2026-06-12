@@ -188,3 +188,8 @@
   .main-dashboard #panel-allfive .bet-pc-header { color: #5ba8ff; border-bottom-color: #5ba8ff; }
 }
 .main-dashboard .bet-card-summary-row .day-badge-pc { display: none; }
+
+.bet-type-card.single {border-color:var(--green);}
+.bet-type-card.single .bet-type-title {color:var(--green);}
+.btn-filter.active.single {border-color:var(--green);color:var(--green);background:rgba(6,214,160,0.05);}
+#panel-single .bet-pc-header {color:var(--green);border-bottom-color:var(--green);}
