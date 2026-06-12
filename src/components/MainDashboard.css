@@ -84,7 +84,7 @@
 .main-dashboard .kpi-val.green { color: var(--green); }
 .main-dashboard .kpi-val.red { color: var(--red); }
 
-.main-dashboard .bet-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.main-dashboard .bet-compare { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
 .main-dashboard .bet-type-card { background: var(--card); border-radius: 12px; padding: 16px; border: 2px solid transparent; transition: border .2s; }
 .main-dashboard .bet-type-card.unanimous { border-color: var(--gold); }
 .main-dashboard .bet-type-card.allfive { border-color: var(--blue); }
