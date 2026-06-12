@@ -6,7 +6,7 @@ const AdminDashboard = () => {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 모달 상태 ('aiGame' | 'aiPred' | 'manualGame' | 'manualPred' | null)
+  // 모달 상태 ('aiGame' | 'aiPred' | 'manualGame' | 'manualPred' | 'dataGames' | 'dataPreds' | null)
   const [activeModal, setActiveModal] = useState(null);
 
   // 수동 입력 폼 상태
@@ -239,53 +239,23 @@ const AdminDashboard = () => {
 
         {loading && <div className="admin-loading">⏳ 데이터 불러오는 중...</div>}
 
-        {/* 저장된 데이터 테이블 */}
-        <div className="admin-data-grid" style={{marginBottom: '32px'}}>
-          <div className="table-container">
-            <h2 className="table-header">📋 저장된 경기 결과 ({games.length}건)</h2>
-            <div className="table-wrapper">
-              <table className="admin-table">
-                <thead><tr><th>날짜</th><th>경기</th><th>결과</th><th>관리</th></tr></thead>
-                <tbody>
-                  {games.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
-                  {games.map(g => (
-                    <tr key={g.id}>
-                      <td style={{fontSize:'12px'}}>{g.date}</td>
-                      <td>{g.awayTeam} vs {g.homeTeam}</td>
-                      <td className="text-green">{g.awayScore}:{g.homeScore} <span className="text-gray" style={{fontSize:'12px'}}>({g.winner})</span></td>
-                      <td><button onClick={() => deleteItem('games', g.id)} className="btn-icon red">삭제</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* --- 데이터 관리 섹션 --- */}
+        <h2 style={{color: 'var(--light)', fontSize: '18px', marginBottom: '16px'}}>📊 데이터 관리</h2>
+        <div className="admin-menu-grid" style={{marginBottom: '32px'}}>
+          <div className="admin-menu-card" onClick={() => setActiveModal('dataGames')} style={{borderColor: 'var(--gray)'}}>
+            <div className="admin-menu-icon">📋</div>
+            <div className="admin-menu-title" style={{color: 'var(--gray)'}}>저장된 경기 결과</div>
+            <div className="admin-menu-desc">총 {games.length}건 데이터 관리</div>
           </div>
-
-          <div className="table-container">
-            <h2 className="table-header">🔮 저장된 예측 데이터 ({predictions.length}건)</h2>
-            <div className="table-wrapper">
-              <table className="admin-table">
-                <thead><tr><th>날짜</th><th>경기</th><th>예측(확률)</th><th>관리</th></tr></thead>
-                <tbody>
-                  {predictions.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
-                  {predictions.map(p => (
-                    <tr key={p.id}>
-                      <td style={{fontSize:'12px'}}>{p.date}</td>
-                      <td>{p.awayTeam} vs {p.homeTeam}</td>
-                      <td className="text-purple">{p.predictedWinner} <span className="text-gray" style={{fontSize:'12px'}}>({p.confidence})</span></td>
-                      <td style={{display:'flex', gap:'4px'}}>
-                        <button onClick={() => runDeepAI(p)} className="btn-icon blue" title="AI 딥다이브 분석">🤖</button>
-                        <button onClick={() => deleteItem('predictions', p.id)} className="btn-icon red">삭제</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="admin-menu-card" onClick={() => setActiveModal('dataPreds')} style={{borderColor: 'var(--gray)'}}>
+            <div className="admin-menu-icon">🔮</div>
+            <div className="admin-menu-title" style={{color: 'var(--gray)'}}>저장된 예측 데이터</div>
+            <div className="admin-menu-desc">총 {predictions.length}건 데이터 관리</div>
           </div>
         </div>
 
-        {/* 대시보드 메뉴 카드 (4개) */}
+        {/* --- 데이터 입력 섹션 --- */}
+        <h2 style={{color: 'var(--light)', fontSize: '18px', marginBottom: '16px'}}>➕ 데이터 입력</h2>
         <div className="admin-menu-grid">
           <div className="admin-menu-card yellow" onClick={() => setActiveModal('aiGame')}>
             <div className="admin-menu-icon">📸</div>
@@ -293,7 +263,7 @@ const AdminDashboard = () => {
             <div className="admin-menu-desc">네이버 스포츠 이미지 파싱</div>
           </div>
           <div className="admin-menu-card purple" onClick={() => setActiveModal('aiPred')}>
-            <div className="admin-menu-icon">🔮</div>
+            <div className="admin-menu-icon">🎯</div>
             <div className="admin-menu-title">승패 예측 자동 입력</div>
             <div className="admin-menu-desc">비교표/텍스트 AI 파싱</div>
           </div>
@@ -303,7 +273,7 @@ const AdminDashboard = () => {
             <div className="admin-menu-desc">직접 경기 스코어 입력</div>
           </div>
           <div className="admin-menu-card blue" onClick={() => setActiveModal('manualPred')}>
-            <div className="admin-menu-icon">🎯</div>
+            <div className="admin-menu-icon">✏️</div>
             <div className="admin-menu-title">승패 예측 수동 추가</div>
             <div className="admin-menu-desc">예측 데이터 직접 입력</div>
           </div>
@@ -311,6 +281,69 @@ const AdminDashboard = () => {
       </div>
 
       {/* ======================= MODALS ======================= */}
+
+      {/* 0-1. 저장된 경기 결과 모달 */}
+      {activeModal === 'dataGames' && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '800px', height: '80vh'}}>
+            <div className="modal-header">
+              <h2>📋 저장된 경기 결과 ({games.length}건)</h2>
+              <button className="modal-close" onClick={closeModal}>&times;</button>
+            </div>
+            <div className="modal-body" style={{padding: '0'}}>
+              <div className="table-wrapper" style={{height: '100%'}}>
+                <table className="admin-table">
+                  <thead><tr><th style={{position:'sticky', top:0}}>날짜</th><th style={{position:'sticky', top:0}}>경기</th><th style={{position:'sticky', top:0}}>결과</th><th style={{position:'sticky', top:0}}>관리</th></tr></thead>
+                  <tbody>
+                    {games.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
+                    {games.map(g => (
+                      <tr key={g.id}>
+                        <td style={{fontSize:'12px'}}>{g.date}</td>
+                        <td>{g.awayTeam} vs {g.homeTeam}</td>
+                        <td className="text-green">{g.awayScore}:{g.homeScore} <span className="text-gray" style={{fontSize:'12px'}}>({g.winner})</span></td>
+                        <td><button onClick={() => deleteItem('games', g.id)} className="btn-icon red">삭제</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 0-2. 저장된 예측 데이터 모달 */}
+      {activeModal === 'dataPreds' && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '800px', height: '80vh'}}>
+            <div className="modal-header">
+              <h2>🔮 저장된 예측 데이터 ({predictions.length}건)</h2>
+              <button className="modal-close" onClick={closeModal}>&times;</button>
+            </div>
+            <div className="modal-body" style={{padding: '0'}}>
+              <div className="table-wrapper" style={{height: '100%'}}>
+                <table className="admin-table">
+                  <thead><tr><th style={{position:'sticky', top:0}}>날짜</th><th style={{position:'sticky', top:0}}>경기</th><th style={{position:'sticky', top:0}}>예측(확률)</th><th style={{position:'sticky', top:0}}>관리</th></tr></thead>
+                  <tbody>
+                    {predictions.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
+                    {predictions.map(p => (
+                      <tr key={p.id}>
+                        <td style={{fontSize:'12px'}}>{p.date}</td>
+                        <td>{p.awayTeam} vs {p.homeTeam}</td>
+                        <td className="text-purple">{p.predictedWinner} <span className="text-gray" style={{fontSize:'12px'}}>({p.confidence})</span></td>
+                        <td style={{display:'flex', gap:'4px'}}>
+                          <button onClick={() => runDeepAI(p)} className="btn-icon blue" title="AI 딥다이브 분석">🤖</button>
+                          <button onClick={() => deleteItem('predictions', p.id)} className="btn-icon red">삭제</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 1. 경기 결과 AI 파싱 모달 */}
       {activeModal === 'aiGame' && (
