@@ -21,14 +21,26 @@ const AdminDashboard = () => {
   const [aiReport, setAiReport] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // 이미지 업로드 상태
+  // 이미지 업로드 상태 (경기 결과용)
   const [imagePreview, setImagePreview] = useState(null);
   const [imageBase64, setImageBase64] = useState(null);
   const [imageMime, setImageMime] = useState('image/jpeg');
   const [imageDate, setImageDate] = useState('');
   const [isParsing, setIsParsing] = useState(false);
-  const [parsedGames, setParsedGames] = useState([]); // AI가 파싱한 결과 목록
+  const [parsedGames, setParsedGames] = useState([]);
   const fileInputRef = useRef(null);
+
+  // 예측 이미지/텍스트 업로드 상태
+  const [predImagePreview, setPredImagePreview] = useState(null);
+  const [predImageBase64, setPredImageBase64] = useState(null);
+  const [predImageMime, setPredImageMime] = useState('image/jpeg');
+  const [predRawText, setPredRawText] = useState('');
+  const [predDate, setPredDate] = useState('');
+  const [isPredParsing, setIsPredParsing] = useState(false);
+  const [parsedPredictions, setParsedPredictions] = useState([]);
+  const predFileInputRef = useRef(null);
+  // 예측 입력 탭: 'image' | 'text'
+  const [predInputTab, setPredInputTab] = useState('image');
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -49,6 +61,7 @@ const AdminDashboard = () => {
     // 오늘 날짜를 기본값으로 설정
     const today = new Date().toISOString().split('T')[0];
     setImageDate(today);
+    setPredDate(today);
   }, []);
 
   // ===================== CRUD 함수들 =====================
@@ -156,6 +169,86 @@ const AdminDashboard = () => {
       body: JSON.stringify(game)
     });
     setParsedGames(prev => prev.filter(g => g !== game));
+    fetchAllData();
+  };
+
+  // ===================== 예측 이미지/텍스트 파싱 핸들러 =====================
+  const handlePredImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setPredImageMime(file.type || 'image/jpeg');
+    const previewUrl = URL.createObjectURL(file);
+    setPredImagePreview(previewUrl);
+    setParsedPredictions([]);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      setPredImageBase64(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePredImageDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    predFileInputRef.current.files = dataTransfer.files;
+    handlePredImageSelect({ target: predFileInputRef.current });
+  };
+
+  const parsePredictionWithAI = async () => {
+    const hasImage = !!predImageBase64;
+    const hasText = predRawText.trim().length > 0;
+    if (!hasImage && !hasText) return alert('이미지 또는 텍스트를 입력해주세요.');
+    setIsPredParsing(true);
+    setParsedPredictions([]);
+    try {
+      const res = await fetch('/api/admin/parse-prediction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: predImageBase64 || null,
+          mimeType: predImageMime,
+          rawText: predRawText || null,
+          gameDate: predDate
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setParsedPredictions(data.predictions);
+      } else {
+        alert('파싱 실패: ' + data.error);
+      }
+    } catch(e) {
+      alert('오류: ' + e.message);
+    }
+    setIsPredParsing(false);
+  };
+
+  const saveAllParsedPredictions = async () => {
+    if (parsedPredictions.length === 0) return;
+    for (const pred of parsedPredictions) {
+      await fetch('/api/admin/predictions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pred)
+      });
+    }
+    alert(`✅ ${parsedPredictions.length}개 예측을 저장했습니다!`);
+    setParsedPredictions([]);
+    setPredImagePreview(null);
+    setPredImageBase64(null);
+    setPredRawText('');
+    fetchAllData();
+  };
+
+  const saveSingleParsedPrediction = async (pred) => {
+    await fetch('/api/admin/predictions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pred)
+    });
+    setParsedPredictions(prev => prev.filter(p => p !== pred));
     fetchAllData();
   };
 
@@ -282,6 +375,124 @@ const AdminDashboard = () => {
                     className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded transition"
                   >
                     ✅ 전체 {parsedGames.length}경기 한 번에 저장
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ====== 예측 이미지/텍스트 업로드 섹션 ====== */}
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6 mb-8">
+          <h2 className="text-xl font-bold mb-1 text-purple-400">🔮 이미지/텍스트로 예측 자동 입력</h2>
+          <p className="text-gray-400 text-sm mb-4">3인 예측 비교표 이미지 또는 AI가 준 텍스트를 붙여넣으면 자동으로 파싱해 저장합니다.</p>
+
+          {/* 탭 전환: 이미지 / 텍스트 */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setPredInputTab('image')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition ${predInputTab === 'image' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}
+            >📷 이미지 업로드</button>
+            <button
+              onClick={() => setPredInputTab('text')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition ${predInputTab === 'text' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}
+            >📋 텍스트 붙여넣기</button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 왼쪽: 이미지 업로드 OR 텍스트 입력 */}
+            <div>
+              {predInputTab === 'image' ? (
+                <div
+                  className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-purple-500 transition-colors"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handlePredImageDrop}
+                  onClick={() => predFileInputRef.current.click()}
+                >
+                  {predImagePreview ? (
+                    <img src={predImagePreview} alt="예측 이미지" className="max-h-64 mx-auto rounded-lg object-contain" />
+                  ) : (
+                    <div className="text-gray-400">
+                      <div className="text-4xl mb-2">📊</div>
+                      <p className="font-semibold">예측 비교표 이미지를 올려주세요</p>
+                      <p className="text-xs mt-1">PNG, JPG, WebP 지원 • 드래그&드롭 가능</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <textarea
+                  value={predRawText}
+                  onChange={e => setPredRawText(e.target.value)}
+                  placeholder={"AI가 준 예측 텍스트를 여기에 붙여넣으세요.\n\n예시:\n롯데 vs LG - LG 승 (65%)\nSSG vs 삼성 - SSG 승 (55%)"}
+                  className="w-full h-52 bg-gray-700 p-3 rounded-xl text-sm text-gray-200 border border-gray-600 resize-none focus:outline-none focus:border-purple-500"
+                />
+              )}
+              <input
+                ref={predFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePredImageSelect}
+              />
+
+              {/* 날짜 + 분석 버튼 */}
+              <div className="flex gap-2 mt-3">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-400 mb-1 block">예측 대상 날짜</label>
+                  <input
+                    type="date"
+                    value={predDate}
+                    onChange={e => setPredDate(e.target.value)}
+                    className="w-full bg-gray-700 p-2 rounded border border-gray-600"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={parsePredictionWithAI}
+                    disabled={isPredParsing || (!predImageBase64 && !predRawText.trim())}
+                    className="bg-purple-500 hover:bg-purple-400 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold px-4 py-2 rounded transition h-10"
+                  >
+                    {isPredParsing ? '🔍 분석 중...' : '🤖 AI 파싱'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 오른쪽: 파싱 결과 */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-300 mb-3">
+                {parsedPredictions.length > 0 ? `✅ ${parsedPredictions.length}경기 예측을 찾았습니다` : '🔍 파싱 결과가 여기에 나타납니다'}
+              </h3>
+
+              {isPredParsing && (
+                <div className="flex items-center gap-3 text-purple-400 py-8 justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-purple-400"></div>
+                  <span>예측 데이터 분석 중...</span>
+                </div>
+              )}
+
+              {parsedPredictions.length > 0 && (
+                <>
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1 mb-3">
+                    {parsedPredictions.map((pred, i) => (
+                      <div key={i} className="bg-gray-700 rounded-lg p-3 flex items-start justify-between gap-2">
+                        <div className="text-sm flex-1">
+                          <div className="text-gray-300">{pred.awayTeam} <span className="text-gray-500">vs</span> {pred.homeTeam}</div>
+                          <div className="text-purple-400 font-bold mt-0.5">🏆 {pred.predictedWinner} <span className="text-gray-400 font-normal text-xs">({pred.confidence})</span></div>
+                          {pred.reason && <div className="text-gray-500 text-xs mt-0.5 truncate">{pred.reason}</div>}
+                        </div>
+                        <button
+                          onClick={() => saveSingleParsedPrediction(pred)}
+                          className="text-xs bg-purple-600 hover:bg-purple-500 px-2 py-1 rounded shrink-0"
+                        >저장</button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={saveAllParsedPredictions}
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded transition"
+                  >
+                    ✅ 전체 {parsedPredictions.length}경기 예측 한 번에 저장
                   </button>
                 </>
               )}
