@@ -239,32 +239,8 @@ const AdminDashboard = () => {
 
         {loading && <div className="admin-loading">⏳ 데이터 불러오는 중...</div>}
 
-        {/* 대시보드 메뉴 카드 (4개) */}
-        <div className="admin-menu-grid">
-          <div className="admin-menu-card yellow" onClick={() => setActiveModal('aiGame')}>
-            <div className="admin-menu-icon">📸</div>
-            <div className="admin-menu-title">경기 결과 자동 입력</div>
-            <div className="admin-menu-desc">네이버 스포츠 이미지 파싱</div>
-          </div>
-          <div className="admin-menu-card purple" onClick={() => setActiveModal('aiPred')}>
-            <div className="admin-menu-icon">🔮</div>
-            <div className="admin-menu-title">승패 예측 자동 입력</div>
-            <div className="admin-menu-desc">비교표/텍스트 AI 파싱</div>
-          </div>
-          <div className="admin-menu-card green" onClick={() => setActiveModal('manualGame')}>
-            <div className="admin-menu-icon">📝</div>
-            <div className="admin-menu-title">경기 결과 수동 추가</div>
-            <div className="admin-menu-desc">직접 경기 스코어 입력</div>
-          </div>
-          <div className="admin-menu-card blue" onClick={() => setActiveModal('manualPred')}>
-            <div className="admin-menu-icon">🎯</div>
-            <div className="admin-menu-title">승패 예측 수동 추가</div>
-            <div className="admin-menu-desc">예측 데이터 직접 입력</div>
-          </div>
-        </div>
-
         {/* 저장된 데이터 테이블 */}
-        <div className="admin-data-grid">
+        <div className="admin-data-grid" style={{marginBottom: '32px'}}>
           <div className="table-container">
             <h2 className="table-header">📋 저장된 경기 결과 ({games.length}건)</h2>
             <div className="table-wrapper">
@@ -306,6 +282,30 @@ const AdminDashboard = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+
+        {/* 대시보드 메뉴 카드 (4개) */}
+        <div className="admin-menu-grid">
+          <div className="admin-menu-card yellow" onClick={() => setActiveModal('aiGame')}>
+            <div className="admin-menu-icon">📸</div>
+            <div className="admin-menu-title">경기 결과 자동 입력</div>
+            <div className="admin-menu-desc">네이버 스포츠 이미지 파싱</div>
+          </div>
+          <div className="admin-menu-card purple" onClick={() => setActiveModal('aiPred')}>
+            <div className="admin-menu-icon">🔮</div>
+            <div className="admin-menu-title">승패 예측 자동 입력</div>
+            <div className="admin-menu-desc">비교표/텍스트 AI 파싱</div>
+          </div>
+          <div className="admin-menu-card green" onClick={() => setActiveModal('manualGame')}>
+            <div className="admin-menu-icon">📝</div>
+            <div className="admin-menu-title">경기 결과 수동 추가</div>
+            <div className="admin-menu-desc">직접 경기 스코어 입력</div>
+          </div>
+          <div className="admin-menu-card blue" onClick={() => setActiveModal('manualPred')}>
+            <div className="admin-menu-icon">🎯</div>
+            <div className="admin-menu-title">승패 예측 수동 추가</div>
+            <div className="admin-menu-desc">예측 데이터 직접 입력</div>
           </div>
         </div>
       </div>
