@@ -9,6 +9,13 @@ const AdminDashboard = () => {
   // 모달 상태 ('aiGame' | 'aiPred' | 'manualGame' | 'manualPred' | 'dataGames' | 'dataPreds' | null)
   const [activeModal, setActiveModal] = useState(null);
 
+  // 데이터 필터용 날짜 상태
+  const yyyy_mm = new Date().toISOString().slice(0, 7);
+  const parts = yyyy_mm.split('-');
+  const lastDay = new Date(parts[0], parts[1], 0).getDate();
+  const [filterStartDate, setFilterStartDate] = useState(yyyy_mm + '-01');
+  const [filterEndDate, setFilterEndDate] = useState(yyyy_mm + '-' + String(lastDay).padStart(2, '0'));
+
   // 수동 입력 폼 상태
   const [gameForm, setGameForm] = useState({ date: '', homeTeam: '', awayTeam: '', homeScore: '', awayScore: '', winner: '' });
   const [predForm, setPredForm] = useState({ date: '', homeTeam: '', awayTeam: '', predictedWinner: '', confidence: '', reason: '' });
@@ -54,6 +61,9 @@ const AdminDashboard = () => {
     setImageDate(today);
     setPredDate(today);
   }, []);
+
+  const filteredGames = games.filter(g => (!filterStartDate || g.date >= filterStartDate) && (!filterEndDate || g.date <= filterEndDate));
+  const filteredPreds = predictions.filter(p => (!filterStartDate || p.date >= filterStartDate) && (!filterEndDate || p.date <= filterEndDate));
 
   // 모달이 열려있을 때 배경 스크롤 방지
   useEffect(() => {
@@ -286,17 +296,22 @@ const AdminDashboard = () => {
       {activeModal === 'dataGames' && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '800px', height: '80vh'}}>
-            <div className="modal-header">
-              <h2>📋 경기 기록 ({games.length}건)</h2>
-              <button className="modal-close" onClick={closeModal}>&times;</button>
+            <div className="modal-header" style={{display:'flex', flexWrap:'wrap', gap:'12px'}}>
+              <h2 style={{margin:0}}>📋 경기 기록 ({filteredGames.length}건)</h2>
+              <div style={{display:'flex', gap:'8px', alignItems:'center', marginLeft:'auto'}}>
+                <input type="date" value={filterStartDate} onChange={e=>setFilterStartDate(e.target.value)} className="admin-input" style={{padding:'4px 8px'}}/>
+                <span style={{color:'var(--gray)'}}>~</span>
+                <input type="date" value={filterEndDate} onChange={e=>setFilterEndDate(e.target.value)} className="admin-input" style={{padding:'4px 8px'}}/>
+              </div>
+              <button className="modal-close" style={{position:'static', alignSelf:'center'}} onClick={closeModal}>&times;</button>
             </div>
             <div className="modal-body" style={{padding: '0'}}>
               <div className="table-wrapper" style={{height: '100%'}}>
                 <table className="admin-table">
                   <thead><tr><th style={{position:'sticky', top:0}}>날짜</th><th style={{position:'sticky', top:0}}>경기</th><th style={{position:'sticky', top:0}}>결과</th><th style={{position:'sticky', top:0}}>관리</th></tr></thead>
                   <tbody>
-                    {games.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
-                    {games.map(g => (
+                    {filteredGames.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
+                    {filteredGames.map(g => (
                       <tr key={g.id}>
                         <td style={{fontSize:'12px'}}>{g.date}</td>
                         <td>{g.awayTeam} vs {g.homeTeam}</td>
@@ -316,17 +331,22 @@ const AdminDashboard = () => {
       {activeModal === 'dataPreds' && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '800px', height: '80vh'}}>
-            <div className="modal-header">
-              <h2>🔮 배팅 내역 ({predictions.length}건)</h2>
-              <button className="modal-close" onClick={closeModal}>&times;</button>
+            <div className="modal-header" style={{display:'flex', flexWrap:'wrap', gap:'12px'}}>
+              <h2 style={{margin:0}}>🔮 배팅 내역 ({filteredPreds.length}건)</h2>
+              <div style={{display:'flex', gap:'8px', alignItems:'center', marginLeft:'auto'}}>
+                <input type="date" value={filterStartDate} onChange={e=>setFilterStartDate(e.target.value)} className="admin-input" style={{padding:'4px 8px'}}/>
+                <span style={{color:'var(--gray)'}}>~</span>
+                <input type="date" value={filterEndDate} onChange={e=>setFilterEndDate(e.target.value)} className="admin-input" style={{padding:'4px 8px'}}/>
+              </div>
+              <button className="modal-close" style={{position:'static', alignSelf:'center'}} onClick={closeModal}>&times;</button>
             </div>
             <div className="modal-body" style={{padding: '0'}}>
               <div className="table-wrapper" style={{height: '100%'}}>
                 <table className="admin-table">
                   <thead><tr><th style={{position:'sticky', top:0}}>날짜</th><th style={{position:'sticky', top:0}}>경기</th><th style={{position:'sticky', top:0}}>예측(확률)</th><th style={{position:'sticky', top:0}}>관리</th></tr></thead>
                   <tbody>
-                    {predictions.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
-                    {predictions.map(p => (
+                    {filteredPreds.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
+                    {filteredPreds.map(p => (
                       <tr key={p.id}>
                         <td style={{fontSize:'12px'}}>{p.date}</td>
                         <td>{p.awayTeam} vs {p.homeTeam}</td>

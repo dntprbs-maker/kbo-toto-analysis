@@ -17,27 +17,27 @@ const MainDashboard = () => {
   useEffect(() => {
     const fetchDB = async () => {
       try {
-        const [gRes, pRes] = await Promise.all([
+        const [games, preds] = await Promise.all([
           fetch('/api/admin/games').then(r => r.json()),
           fetch('/api/admin/predictions').then(r => r.json())
         ]);
-        const games = gRes.games || [];
-        const preds = pRes.predictions || [];
         
         // 날짜별 그룹화
         const groups = {};
-        games.forEach(g => {
-          if (!groups[g.date]) groups[g.date] = { date: g.date, games: [], unanimousBet: null, allFiveBets: [], singleBets: [] };
-          const p = preds.find(x => x.date === g.date && x.awayTeam === g.awayTeam && x.homeTeam === g.homeTeam);
-          groups[g.date].games.push({
-            matchup: `${g.awayTeam} vs ${g.homeTeam}`,
-            ai1: p ? p.predictedWinner : '-',
-            ai2: p ? p.predictedWinner : '-',
-            ai3: p ? p.predictedWinner : '-',
-            pick: p ? p.predictedWinner : '-',
-            result: g.winner || null
+        if (Array.isArray(games)) {
+          games.forEach(g => {
+            if (!groups[g.date]) groups[g.date] = { date: g.date, games: [], unanimousBet: null, allFiveBets: [], singleBets: [] };
+            const p = Array.isArray(preds) ? preds.find(x => x.date === g.date && x.awayTeam === g.awayTeam && x.homeTeam === g.homeTeam) : null;
+            groups[g.date].games.push({
+              matchup: `${g.awayTeam} vs ${g.homeTeam}`,
+              ai1: p ? p.predictedWinner : '-',
+              ai2: p ? p.predictedWinner : '-',
+              ai3: p ? p.predictedWinner : '-',
+              pick: p ? p.predictedWinner : '-',
+              result: g.winner || null
+            });
           });
-        });
+        }
 
         // 간단한 만장일치 베팅 (가상 생성) - 실제로는 DB에 베팅 내역을 만들어야 함
         Object.values(groups).forEach(day => {
