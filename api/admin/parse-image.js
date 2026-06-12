@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 - JSON만 응답하고 다른 설명은 절대 쓰지 마세요`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,7 +56,8 @@ export default async function handler(req, res) {
           }],
           generationConfig: {
             temperature: 0.1, // 낮을수록 정확한 추출
-            maxOutputTokens: 1024
+            maxOutputTokens: 1024,
+            responseMimeType: "application/json"
           }
         })
       }
