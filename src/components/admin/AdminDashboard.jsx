@@ -244,12 +244,12 @@ const AdminDashboard = () => {
         <div className="admin-menu-grid" style={{marginBottom: '32px'}}>
           <div className="admin-menu-card" onClick={() => setActiveModal('dataGames')} style={{borderColor: 'var(--gray)'}}>
             <div className="admin-menu-icon">📋</div>
-            <div className="admin-menu-title" style={{color: 'var(--gray)'}}>저장된 경기 결과</div>
+            <div className="admin-menu-title" style={{color: 'var(--gray)'}}>경기 기록</div>
             <div className="admin-menu-desc">총 {games.length}건 데이터 관리</div>
           </div>
           <div className="admin-menu-card" onClick={() => setActiveModal('dataPreds')} style={{borderColor: 'var(--gray)'}}>
             <div className="admin-menu-icon">🔮</div>
-            <div className="admin-menu-title" style={{color: 'var(--gray)'}}>저장된 예측 데이터</div>
+            <div className="admin-menu-title" style={{color: 'var(--gray)'}}>배팅 내역</div>
             <div className="admin-menu-desc">총 {predictions.length}건 데이터 관리</div>
           </div>
         </div>
@@ -287,7 +287,7 @@ const AdminDashboard = () => {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '800px', height: '80vh'}}>
             <div className="modal-header">
-              <h2>📋 저장된 경기 결과 ({games.length}건)</h2>
+              <h2>📋 경기 기록 ({games.length}건)</h2>
               <button className="modal-close" onClick={closeModal}>&times;</button>
             </div>
             <div className="modal-body" style={{padding: '0'}}>
@@ -317,7 +317,7 @@ const AdminDashboard = () => {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '800px', height: '80vh'}}>
             <div className="modal-header">
-              <h2>🔮 저장된 예측 데이터 ({predictions.length}건)</h2>
+              <h2>🔮 배팅 내역 ({predictions.length}건)</h2>
               <button className="modal-close" onClick={closeModal}>&times;</button>
             </div>
             <div className="modal-body" style={{padding: '0'}}>
