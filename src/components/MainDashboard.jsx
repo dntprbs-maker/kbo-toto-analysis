@@ -1,28 +1,67 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './MainDashboard.css';
 
-// ── DATA ────────────────────────────────────────────────────
-const INITIAL_DATA = [
-  {date:"2026-06-07",games:[{matchup:"삼성 vs KIA",ai1:"KIA",ai2:"KIA",ai3:"KIA",pick:"KIA",result:"KIA"},{matchup:"한화 vs 롯데",ai1:"한화",ai2:"한화",ai3:"한화",pick:"한화",result:"한화"},{matchup:"LG vs NC",ai1:"NC",ai2:"LG",ai3:"LG",pick:"LG",result:"NC"},{matchup:"KT vs SSG",ai1:"SSG",ai2:"KT",ai3:"KT",pick:"KT",result:"SSG"},{matchup:"키움 vs 두산",ai1:"두산",ai2:"두산",ai3:"두산",pick:"두산",result:"키움"}],unanimousBet:{odds:3.9,amount:100,betResult:"miss"},allFiveBets:[{label:"조합1",odds:10.0,amount:100,betResult:"miss",pickLabels:["KIA","한화","LG","KT","두산"]}]},
-  {date:"2026-06-09",games:[{matchup:"SSG vs LG",ai1:"LG",ai2:"LG",ai3:"LG",pick:"LG",result:"LG"},{matchup:"두산 vs 롯데",ai1:"두산",ai2:"두산",ai3:"두산",pick:"두산",result:"두산"},{matchup:"KIA vs 한화",ai1:"한화",ai2:"KIA",ai3:"KIA",pick:"KIA",result:"KIA"},{matchup:"NC vs 키움",ai1:"키움",ai2:"키움",ai3:"NC",pick:"키움",result:"키움"},{matchup:"삼성 vs KT",ai1:"KT",ai2:"KT",ai3:"KT",pick:"KT",result:"KT"}],unanimousBet:{odds:3.5,amount:100,betResult:"hit"},allFiveBets:[{label:"조합1",odds:11.9,amount:100,betResult:"hit",pickLabels:["LG승","롯데패","KT승","한화패","키움승"]}]},
-  {date:"2026-06-10",games:[{matchup:"SSG vs LG",ai1:"LG",ai2:"LG",ai3:"LG",pick:"LG",result:"LG"},{matchup:"두산 vs 롯데",ai1:"두산",ai2:"두산",ai3:"두산",pick:"두산",result:"롯데"},{matchup:"삼성 vs KT",ai1:"삼성",ai2:"KT",ai3:"KT",pick:"KT",result:"KT"},{matchup:"KIA vs 한화",ai1:"KIA",ai2:"KIA",ai3:"한화",pick:"KIA",result:"한화"},{matchup:"NC vs 키움",ai1:"NC",ai2:"키움",ai3:"NC",pick:"NC",result:"NC"}],unanimousBet:{odds:1.9,amount:100,betResult:"miss",customGames:[{matchup:"SSG vs LG",pick:"LG",result:"LG"},{matchup:"두산 vs 롯데",pick:"두산",result:"롯데"}]},allFiveBets:[{label:"인터넷",odds:10.3,amount:100,betResult:"miss",pickLabels:["LG승","롯데패","KT승","한화패","키움패"]},{label:"판매점A (KT패)",odds:5.6,amount:5000,betResult:"miss",pickLabels:["LG승","롯데패","KT패(삼성승)","한화패(KIA승)","키움패"]},{label:"판매점B (KT승)",odds:7.9,amount:5000,betResult:"miss",pickLabels:["LG승","롯데패","KT승","한화패(KIA승)","키움패"]}]},
-  {date:"2026-06-11",games:[{matchup:"SSG vs LG",ai1:"LG",ai2:"LG",ai3:"LG",pick:"LG",result:"LG"},{matchup:"두산 vs 롯데",ai1:"롯데",ai2:"두산",ai3:"두산",pick:"두산",result:"두산"},{matchup:"삼성 vs KT",ai1:"삼성",ai2:"KT",ai3:"KT",pick:"KT",result:"삼성"},{matchup:"KIA vs 한화",ai1:"한화",ai2:"KIA",ai3:"한화",pick:"한화",result:"한화"},{matchup:"NC vs 키움",ai1:"NC",ai2:"키움",ai3:"NC",pick:"NC",result:"NC"}],unanimousBet:{odds:1.6,amount:100,betResult:"hit",customGames:[{matchup:"SSG vs LG",pick:"LG",result:"LG"}]},allFiveBets:[{label:"5경기",odds:13.4,amount:100,betResult:"miss",pickLabels:["LG승","롯데패(두산승)","KT승","한화승","키움패(NC승)"]},{label:"3경기",odds:6.1,amount:100,betResult:"miss",customGames:[{matchup:"SSG vs LG",pick:"LG",result:"LG"},{matchup:"삼성 vs KT",pick:"KT",result:"삼성"},{matchup:"KIA vs 한화",pick:"한화",result:"한화"}]}]},
-  {date:"2026-06-12",games:[{matchup:"롯데 vs LG",ai1:"LG",ai2:"LG",ai3:"LG",pick:"LG",result:"롯데"},{matchup:"두산 vs KIA",ai1:"KIA",ai2:"KIA",ai3:"KIA",pick:"KIA",result:"두산"},{matchup:"한화 vs 키움",ai1:"키움",ai2:"키움",ai3:"한화",pick:"키움",result:"키움"},{matchup:"SSG vs 삼성",ai1:"삼성",ai2:"삼성",ai3:"SSG",pick:"삼성",result:"SSG"},{matchup:"NC vs KT",ai1:"NC",ai2:"NC",ai3:"KT",pick:"NC",result:"KT"}],unanimousBet:{odds:1.6,amount:100,betResult:"miss",customGames:[{matchup:"두산 vs KIA",pick:"KIA",result:"두산"}]},allFiveBets:[{label:"3경기",odds:3.3,amount:100,betResult:"miss",customGames:[{matchup:"롯데 vs LG",pick:"LG",result:"롯데"},{matchup:"SSG vs 삼성",pick:"삼성",result:"SSG"},{matchup:"두산 vs KIA",pick:"KIA",result:"두산"}]},{label:"5경기",odds:11.2,amount:100,betResult:"miss",pickLabels:["LG승","삼성승","KIA승","KT패(NC승)","키움승"]}],singleBets:[{matchup:"롯데 vs LG",pick:"LG",odds:1.35,amount:100,betResult:"miss",result:"롯데"},{matchup:"SSG vs 삼성",pick:"삼성",odds:1.51,amount:100,betResult:"miss",result:"SSG"},{matchup:"두산 vs KIA",pick:"KIA",odds:1.60,amount:100,betResult:"miss",result:"두산"},{matchup:"NC vs KT",pick:"NC",odds:1.72,amount:100,betResult:"miss",result:"KT"},{matchup:"한화 vs 키움",pick:"키움",odds:1.99,amount:100,betResult:"hit",result:"키움"}]},
-];
-
 const MainDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [betFilterType, setBetFilterType] = useState('unanimous');
   
-  // 기본 날짜 계산 (DATA 마지막 날짜 기준 월초~월말)
-  const defaultLatest = INITIAL_DATA.length ? INITIAL_DATA[INITIAL_DATA.length-1].date : new Date().toISOString().split('T')[0];
-  const yyyy_mm = defaultLatest.slice(0, 7);
+  const yyyy_mm = new Date().toISOString().slice(0, 7);
   const parts = yyyy_mm.split('-');
   const lastDay = new Date(parts[0], parts[1], 0).getDate();
   
   const [startDate, setStartDate] = useState(yyyy_mm + '-01');
   const [endDate, setEndDate] = useState(yyyy_mm + '-' + String(lastDay).padStart(2, '0'));
-  const [data, setData] = useState(INITIAL_DATA);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDB = async () => {
+      try {
+        const [gRes, pRes] = await Promise.all([
+          fetch('/api/admin/games').then(r => r.json()),
+          fetch('/api/admin/predictions').then(r => r.json())
+        ]);
+        const games = gRes.games || [];
+        const preds = pRes.predictions || [];
+        
+        // 날짜별 그룹화
+        const groups = {};
+        games.forEach(g => {
+          if (!groups[g.date]) groups[g.date] = { date: g.date, games: [], unanimousBet: null, allFiveBets: [], singleBets: [] };
+          const p = preds.find(x => x.date === g.date && x.awayTeam === g.awayTeam && x.homeTeam === g.homeTeam);
+          groups[g.date].games.push({
+            matchup: `${g.awayTeam} vs ${g.homeTeam}`,
+            ai1: p ? p.predictedWinner : '-',
+            ai2: p ? p.predictedWinner : '-',
+            ai3: p ? p.predictedWinner : '-',
+            pick: p ? p.predictedWinner : '-',
+            result: g.winner || null
+          });
+        });
+
+        // 간단한 만장일치 베팅 (가상 생성) - 실제로는 DB에 베팅 내역을 만들어야 함
+        Object.values(groups).forEach(day => {
+          if (day.games.length > 0) {
+            const hits = day.games.filter(g => g.pick === g.result).length;
+            const pendings = day.games.filter(g => g.result === null).length;
+            const isHit = hits === day.games.length && pendings === 0;
+            day.unanimousBet = {
+              odds: 1.5 * day.games.length,
+              amount: 10000,
+              betResult: pendings > 0 ? 'pending' : (isHit ? 'hit' : 'miss'),
+              customGames: day.games
+            };
+          }
+        });
+
+        setData(Object.values(groups).sort((a,b) => a.date.localeCompare(b.date)));
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+      setLoading(false);
+    };
+    fetchDB();
+  }, []);
 
   const canvasRef = useRef(null);
 
