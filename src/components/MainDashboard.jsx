@@ -87,13 +87,11 @@ const MainDashboard = () => {
       return;
     }
     
-    let cum = 0;
     const pts = daysWithResults.map(d => { 
       let dailyProfit = (getProfit(d.unanimousBet)||0);
       if (d.allFiveBets) dailyProfit += d.allFiveBets.reduce((s,b)=>s+(getProfit(b)||0), 0);
       if (d.singleBets) dailyProfit += d.singleBets.reduce((s,b)=>s+(getProfit(b)||0), 0);
-      cum += dailyProfit;
-      return { time: new Date(d.date).getTime(), y: cum, dateStr: d.date }; 
+      return { time: new Date(d.date).getTime(), y: dailyProfit, dateStr: d.date }; 
     });
 
     const pad = {l:52, r:16, t:16, b:38};
@@ -108,40 +106,31 @@ const MainDashboard = () => {
     ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.moveTo(pad.l, toY(0)); ctx.lineTo(W - pad.r, toY(0)); ctx.stroke(); ctx.setLineDash([]);
     
-    const isPosLine = pts[pts.length-1].y >= 0;
-    const lineCol = isPosLine ? '#06d6a0' : '#ef476f';
-    const grad = ctx.createLinearGradient(0, pad.t, 0, H-pad.b);
-    grad.addColorStop(0, isPosLine ? 'rgba(6,214,160,.25)' : 'rgba(239,71,111,.25)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    
-    // Area
-    ctx.beginPath();
-    ctx.moveTo(toX(pts[0].time), toY(0));
-    pts.forEach(p => ctx.lineTo(toX(p.time), toY(p.y)));
-    ctx.lineTo(toX(pts[pts.length-1].time), toY(0));
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
+    const daysDiff = Math.max(timeRange / 86400000, 1);
+    const barW = Math.max((cW / daysDiff) * 0.4, 4);
 
-    // Line
-    ctx.beginPath();
-    ctx.strokeStyle = lineCol;
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = 'round';
-    pts.forEach((p,i) => i===0 ? ctx.moveTo(toX(p.time), toY(p.y)) : ctx.lineTo(toX(p.time), toY(p.y)));
-    ctx.stroke();
-
-    // Points and text
     ctx.textAlign = 'center'; ctx.font = '9px Noto Sans KR';
+
     pts.forEach((p) => { 
-      ctx.beginPath();
-      ctx.arc(toX(p.time), toY(p.y), 3.5, 0, Math.PI*2);
-      ctx.fillStyle = p.y >= 0 ? '#06d6a0' : '#ef476f';
-      ctx.fill();
+      const isPos = p.y > 0;
+      const isZero = p.y === 0;
+      const barColor = isPos ? '#3b82f6' : (isZero ? '#6b7280' : '#ef476f');
+      
+      ctx.fillStyle = barColor;
+      const x = toX(p.time);
+      const yZero = toY(0);
+      const yVal = toY(p.y);
+      const rectY = p.y >= 0 ? yVal : yZero;
+      const rectH = Math.abs(yZero - yVal);
+      ctx.fillRect(x - barW/2, rectY, barW, Math.max(rectH, 1));
 
       ctx.fillStyle = '#9ca3af';
       const d = new Date(p.time);
-      ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`, toX(p.time), H-pad.b+14);
+      ctx.fillText(`${d.getMonth()+1}/${d.getDate()}`, x, H-pad.b+14);
+
+      ctx.fillStyle = barColor;
+      const amtStr = p.y > 0 ? `+${p.y.toLocaleString()}` : p.y.toLocaleString();
+      ctx.fillText(amtStr, x, H-pad.b+26);
     });
     
     ctx.fillStyle = '#6b7280'; ctx.font = '10px Noto Sans KR'; ctx.textAlign = 'right';
