@@ -380,7 +380,12 @@ const AdminDashboard = () => {
                                     <input type="text" className="admin-input" placeholder="승리" style={{width:'50px', padding:'2px 4px', fontSize:'12px'}} value={editForm.winner} onChange={e=>setEditForm({...editForm, winner:e.target.value})} />
                                   </div>
                                 ) : (
-                                  <span className="text-green">{g.awayScore}:{g.homeScore} <span className="text-gray" style={{fontSize:'12px'}}>({g.winner})</span></span>
+                                  <span className="text-green">
+                                    {(g.awayScore || g.homeScore)
+                                      ? `${g.awayScore}:${g.homeScore} `
+                                      : ''}
+                                    <span style={{fontWeight:900}}>🏆 {g.winner}</span>
+                                  </span>
                                 )}
                               </td>
                               <td style={{textAlign:'center'}}>

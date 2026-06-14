@@ -447,3 +447,84 @@
 .btn-icon.red:hover { background: rgba(239,71,111,0.1); }
 .btn-icon.blue { border-color: var(--blue); color: var(--blue); }
 .btn-icon.blue:hover { background: rgba(59,130,246,0.1); }
+.btn-icon.green { border-color: var(--green); color: var(--green); }
+.btn-icon.green:hover { background: rgba(6,214,160,0.1); }
+.btn-icon.gray { border-color: var(--gray); color: var(--gray); }
+.btn-icon.gray:hover { background: rgba(107,114,128,0.1); }
+
+/* ── Day-Card 스타일 (메인 화면과 동일) ── */
+.admin-dashboard .day-card {
+  background: #1a2235;
+  border: 1px solid #1e3250;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.admin-dashboard .day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px 10px 20px;
+  background: linear-gradient(90deg, #1a2235 0%, #111827 100%);
+  border-bottom: 1px solid #1e3250;
+}
+.admin-dashboard .day-date {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--gold);
+}
+.admin-dashboard .table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-dashboard .games-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.admin-dashboard .games-table th {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 6px 8px;
+  text-align: center;
+  border-bottom: 2px solid #1e3250;
+  white-space: nowrap;
+}
+.admin-dashboard .games-table th.col-match {
+  background: rgba(255,255,255,0.04);
+  color: #e2e8f0;
+  text-align: left;
+  padding-left: 20px;
+  border-right: 1px solid #1e3250;
+}
+.admin-dashboard .games-table th.col-result {
+  background: rgba(6,214,160,0.10);
+  color: #06d6a0;
+}
+.admin-dashboard .games-table td {
+  padding: 7px 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(30,50,80,.4);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.admin-dashboard .games-table td.col-match {
+  text-align: left;
+  padding-left: 20px;
+  font-weight: 700;
+  color: #e2e8f0;
+  border-right: 1px solid #1e3250;
+}
+.admin-dashboard .games-table td.col-result {
+  color: #06d6a0;
+}
+.admin-dashboard .games-table tr:last-child td { border-bottom: none; }
+.admin-dashboard .games-table tr:nth-child(even) td { filter: brightness(1.04); }
+.admin-dashboard .text-green { color: var(--green); }
+.admin-dashboard .empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--gray);
+  font-size: 13px;
+}
+
