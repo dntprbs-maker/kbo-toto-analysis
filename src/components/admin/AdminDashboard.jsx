@@ -106,6 +106,42 @@ const AdminDashboard = () => {
     closeModal();
   };
 
+  // ===================== EDIT =====================
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setEditForm({ ...item });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const saveEdit = async (type) => {
+    await fetch(`/api/admin/${type}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editForm)
+    });
+    setEditingId(null);
+    fetchAllData();
+  };
+
+  // ===================== GROUPING =====================
+  const groupedGames = Object.values(filteredGames.reduce((acc, g) => {
+    if (!acc[g.date]) acc[g.date] = { date: g.date, items: [] };
+    acc[g.date].items.push(g);
+    return acc;
+  }, {})).sort((a,b) => b.date.localeCompare(a.date));
+
+  const groupedPreds = Object.values(filteredPreds.reduce((acc, p) => {
+    if (!acc[p.date]) acc[p.date] = { date: p.date, items: [] };
+    acc[p.date].items.push(p);
+    return acc;
+  }, {})).sort((a,b) => b.date.localeCompare(a.date));
+
   // ===================== 경기 이미지 파싱 =====================
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
@@ -305,23 +341,69 @@ const AdminDashboard = () => {
               </div>
               <button className="modal-close" style={{position:'static', alignSelf:'center'}} onClick={closeModal}>&times;</button>
             </div>
-            <div className="modal-body" style={{padding: '0'}}>
-              <div className="table-wrapper" style={{height: '100%'}}>
-                <table className="admin-table">
-                  <thead><tr><th style={{position:'sticky', top:0}}>날짜</th><th style={{position:'sticky', top:0}}>경기</th><th style={{position:'sticky', top:0}}>결과</th><th style={{position:'sticky', top:0}}>관리</th></tr></thead>
-                  <tbody>
-                    {filteredGames.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
-                    {filteredGames.map(g => (
-                      <tr key={g.id}>
-                        <td style={{fontSize:'12px'}}>{g.date}</td>
-                        <td>{g.awayTeam} vs {g.homeTeam}</td>
-                        <td className="text-green">{g.awayScore}:{g.homeScore} <span className="text-gray" style={{fontSize:'12px'}}>({g.winner})</span></td>
-                        <td><button onClick={() => deleteItem('games', g.id)} className="btn-icon red">삭제</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="modal-body" style={{padding: '16px', background: 'var(--bg-dark)'}}>
+              {groupedGames.length === 0 && !loading && <div className="empty">데이터가 없습니다</div>}
+              {groupedGames.map(day => (
+                <div key={day.date} className="day-card" style={{marginBottom:'16px'}}>
+                  <div className="day-header" style={{background: 'var(--card-bg)'}}><span className="day-date">📅 {day.date}</span></div>
+                  <div className="table-scroll-wrap">
+                    <table className="games-table" style={{borderTop: 'none'}}>
+                      <thead>
+                        <tr>
+                          <th className="col-match">경기</th>
+                          <th className="col-result">결과</th>
+                          <th style={{width: '90px', textAlign:'center'}}>관리</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {day.items.map(g => {
+                          const isEditing = editingId === g.id;
+                          return (
+                            <tr key={g.id}>
+                              <td className="col-match">
+                                {isEditing ? (
+                                  <div style={{display:'flex', gap:'4px', alignItems:'center'}}>
+                                    <input type="text" className="admin-input" style={{width:'60px', padding:'2px 4px', fontSize:'12px'}} value={editForm.awayTeam} onChange={e=>setEditForm({...editForm, awayTeam:e.target.value})} />
+                                    <span style={{color:'var(--gray)'}}>vs</span>
+                                    <input type="text" className="admin-input" style={{width:'60px', padding:'2px 4px', fontSize:'12px'}} value={editForm.homeTeam} onChange={e=>setEditForm({...editForm, homeTeam:e.target.value})} />
+                                  </div>
+                                ) : (
+                                  `${g.awayTeam} vs ${g.homeTeam}`
+                                )}
+                              </td>
+                              <td className="col-result">
+                                {isEditing ? (
+                                  <div style={{display:'flex', gap:'4px', alignItems:'center'}}>
+                                    <input type="number" className="admin-input" style={{width:'40px', padding:'2px 4px', fontSize:'12px'}} value={editForm.awayScore} onChange={e=>setEditForm({...editForm, awayScore:e.target.value})} />
+                                    <span>:</span>
+                                    <input type="number" className="admin-input" style={{width:'40px', padding:'2px 4px', fontSize:'12px'}} value={editForm.homeScore} onChange={e=>setEditForm({...editForm, homeScore:e.target.value})} />
+                                    <input type="text" className="admin-input" placeholder="승리" style={{width:'50px', padding:'2px 4px', fontSize:'12px'}} value={editForm.winner} onChange={e=>setEditForm({...editForm, winner:e.target.value})} />
+                                  </div>
+                                ) : (
+                                  <span className="text-green">{g.awayScore}:{g.homeScore} <span className="text-gray" style={{fontSize:'12px'}}>({g.winner})</span></span>
+                                )}
+                              </td>
+                              <td style={{textAlign:'center'}}>
+                                {isEditing ? (
+                                  <div style={{display:'flex', gap:'4px', justifyContent:'center'}}>
+                                    <button onClick={() => saveEdit('games')} className="btn-icon green" title="저장">💾</button>
+                                    <button onClick={cancelEdit} className="btn-icon gray" title="취소">✕</button>
+                                  </div>
+                                ) : (
+                                  <div style={{display:'flex', gap:'4px', justifyContent:'center'}}>
+                                    <button onClick={() => startEdit(g)} className="btn-icon blue" title="수정">✏️</button>
+                                    <button onClick={() => deleteItem('games', g.id)} className="btn-icon red" title="삭제">🗑️</button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -340,26 +422,72 @@ const AdminDashboard = () => {
               </div>
               <button className="modal-close" style={{position:'static', alignSelf:'center'}} onClick={closeModal}>&times;</button>
             </div>
-            <div className="modal-body" style={{padding: '0'}}>
-              <div className="table-wrapper" style={{height: '100%'}}>
-                <table className="admin-table">
-                  <thead><tr><th style={{position:'sticky', top:0}}>날짜</th><th style={{position:'sticky', top:0}}>경기</th><th style={{position:'sticky', top:0}}>예측(확률)</th><th style={{position:'sticky', top:0}}>관리</th></tr></thead>
-                  <tbody>
-                    {filteredPreds.length === 0 && !loading && <tr><td colSpan="4" className="td-empty">데이터가 없습니다</td></tr>}
-                    {filteredPreds.map(p => (
-                      <tr key={p.id}>
-                        <td style={{fontSize:'12px'}}>{p.date}</td>
-                        <td>{p.awayTeam} vs {p.homeTeam}</td>
-                        <td className="text-purple">{p.predictedWinner} <span className="text-gray" style={{fontSize:'12px'}}>({p.confidence})</span></td>
-                        <td style={{display:'flex', gap:'4px'}}>
-                          <button onClick={() => runDeepAI(p)} className="btn-icon blue" title="AI 딥다이브 분석">🤖</button>
-                          <button onClick={() => deleteItem('predictions', p.id)} className="btn-icon red">삭제</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="modal-body" style={{padding: '16px', background: 'var(--bg-dark)'}}>
+              {groupedPreds.length === 0 && !loading && <div className="empty">데이터가 없습니다</div>}
+              {groupedPreds.map(day => (
+                <div key={day.date} className="day-card" style={{marginBottom:'16px'}}>
+                  <div className="day-header" style={{background: 'var(--card-bg)'}}><span className="day-date">📅 {day.date}</span></div>
+                  <div className="table-scroll-wrap">
+                    <table className="games-table" style={{borderTop: 'none'}}>
+                      <thead>
+                        <tr>
+                          <th className="col-match">경기</th>
+                          <th className="col-result">예측(확률)</th>
+                          <th style={{width: '120px', textAlign:'center'}}>관리</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {day.items.map(p => {
+                          const isEditing = editingId === p.id;
+                          return (
+                            <tr key={p.id}>
+                              <td className="col-match">
+                                {isEditing ? (
+                                  <div style={{display:'flex', gap:'4px', alignItems:'center'}}>
+                                    <input type="text" className="admin-input" style={{width:'60px', padding:'2px 4px', fontSize:'12px'}} value={editForm.awayTeam} onChange={e=>setEditForm({...editForm, awayTeam:e.target.value})} />
+                                    <span style={{color:'var(--gray)'}}>vs</span>
+                                    <input type="text" className="admin-input" style={{width:'60px', padding:'2px 4px', fontSize:'12px'}} value={editForm.homeTeam} onChange={e=>setEditForm({...editForm, homeTeam:e.target.value})} />
+                                  </div>
+                                ) : (
+                                  `${p.awayTeam} vs ${p.homeTeam}`
+                                )}
+                              </td>
+                              <td className="col-result">
+                                {isEditing ? (
+                                  <div style={{display:'flex', gap:'4px', alignItems:'center'}}>
+                                    <input type="text" className="admin-input" placeholder="승리 예측" style={{width:'60px', padding:'2px 4px', fontSize:'12px'}} value={editForm.predictedWinner} onChange={e=>setEditForm({...editForm, predictedWinner:e.target.value})} />
+                                    <select className="admin-input" style={{padding:'2px', fontSize:'12px'}} value={editForm.confidence} onChange={e=>setEditForm({...editForm, confidence:e.target.value})}>
+                                      <option value="높음">높음</option>
+                                      <option value="중간">중간</option>
+                                      <option value="낮음">낮음</option>
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <span className="text-purple">{p.predictedWinner} <span className="text-gray" style={{fontSize:'12px'}}>({p.confidence})</span></span>
+                                )}
+                              </td>
+                              <td style={{textAlign:'center'}}>
+                                {isEditing ? (
+                                  <div style={{display:'flex', gap:'4px', justifyContent:'center'}}>
+                                    <button onClick={() => saveEdit('predictions')} className="btn-icon green" title="저장">💾</button>
+                                    <button onClick={cancelEdit} className="btn-icon gray" title="취소">✕</button>
+                                  </div>
+                                ) : (
+                                  <div style={{display:'flex', gap:'4px', justifyContent:'center'}}>
+                                    <button onClick={() => runDeepAI(p)} className="btn-icon blue" title="AI 딥다이브 분석">🤖</button>
+                                    <button onClick={() => startEdit(p)} className="btn-icon blue" title="수정">✏️</button>
+                                    <button onClick={() => deleteItem('predictions', p.id)} className="btn-icon red" title="삭제">🗑️</button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
